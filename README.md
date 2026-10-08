@@ -126,6 +126,31 @@ node scripts/make-pixel-font.mjs      # woff2 → TTF（RN 不支持 woff2）
 > 而 Fontsource 的 Fusion Pixel 包只带 latin 子集、泛 CJK 包是按 unicode-range
 > 拆分的 woff2（RN 无法按 unicode-range 回退）。
 
+## 图标与开屏
+
+设计：**黑色点击轮 + 中间一个音乐图标**（呼应应用内的 iPod 外观）。全部由
+[scripts/make-app-icons.py](scripts/make-app-icons.py) 程序化生成（4 倍超采样绘制后降采样），
+产物在 `assets/images/`：
+
+| 文件 | 用途 |
+| --- | --- |
+| `icon.png` | 应用图标：银色渐变底 + 黑轮盘 + 白色双八分音符 |
+| `android-icon-foreground.png` | 自适应图标前景（轮盘缩到安全区内，四周透明） |
+| `android-icon-background.png` | 自适应图标背景（与机身一致的银色渐变） |
+| `android-icon-monochrome.png` | 单色图标（白色轮盘、音符挖空，由系统着色） |
+| `splash-icon.png` | 开屏图标，配合 `app.json` 里 `expo-splash-screen` 的 `backgroundColor` |
+
+重新生成与生效：
+
+```bash
+python scripts/make-app-icons.py          # 改设计只改这个脚本
+npx expo prebuild -p android              # 图标/开屏是原生资源，必须重新 prebuild + 构建
+cd android && ./gradlew :app:assembleDebug
+```
+
+> 图标与开屏属于原生资源，改完**必须重新构建 APK**才会在桌面/启动时可见；
+> 只改 JS 是看不到效果的。
+
 ## 点击轮操作映射
 
 | 操作 | 作用 |

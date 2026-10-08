@@ -25,6 +25,8 @@ const RADIUS = SIZE / 2; // 旋转几何中心
 const CENTER = 128; // 中键直径
 const DIR = 64; // 四方向键边长
 const ROTATE_STEP = Math.PI / 6; // 每 30° 触发一档
+/** 轮盘上所有标识（MENU 文字与四个符号键）统一字号。 */
+const ICON_SIZE = 19;
 
 /** 随转动旋转的颗粒贴图：做成比滚轮更大的方形，旋转时不会露出边角。 */
 const GRAIN_SIZE = SIZE * 1.6;
@@ -241,19 +243,20 @@ const makeStyles = (palette: Palette) =>
     dirBottom: { bottom: 8, left: RADIUS - DIR / 2 },
     dirLeft: { left: 8, top: RADIUS - DIR / 2 },
     dirRight: { right: 8, top: RADIUS - DIR / 2 },
-    /** 刻印感：暗字 + 下方 1px 亮边（凹刻）。 */
+    /** 刻印感：暗字 + 下方 1px 亮边（凹刻）。字号与符号键统一为 ICON_SIZE。 */
     menuLabel: {
       color: palette.body.wheelIcon,
-      fontFamily: fonts.key,
-      fontSize: 13,
-      letterSpacing: 2,
+      fontFamily: fonts.keyBold,
+      fontSize: ICON_SIZE,
+      letterSpacing: 1,
       textShadowColor: palette.material.siliconeSheen,
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 0,
     },
     iconLabel: {
       color: palette.body.wheelIcon,
-      fontSize: 20,
+      fontSize: ICON_SIZE,
+      lineHeight: ICON_SIZE + 4,
       textShadowColor: palette.material.siliconeSheen,
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 0,
