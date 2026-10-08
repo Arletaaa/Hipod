@@ -71,7 +71,7 @@ export default function HomeScreen() {
 
   return (
     <IpodShell
-      lcdTitle="iPod"
+      lcdTitle="HiPod"
       wheel={{
         onMenu: () => console.log('[wheel] MENU → 已在主菜单'),
         onPrev: () => move(-1),

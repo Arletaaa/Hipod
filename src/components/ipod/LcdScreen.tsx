@@ -30,7 +30,7 @@ const BEZEL_RADIUS = 8;
  * （RN 中绝对定位子元素相对父容器 padding 盒定位，若屏面带 padding，
  *   背景层会被内缩一圈，在右侧/底部露出未上色的灰带。）
  */
-export function LcdScreen({ title = 'iPod', statusIcon = '▶', children }: LcdScreenProps) {
+export function LcdScreen({ title = 'HiPod', statusIcon = '▶', children }: LcdScreenProps) {
   const palette = usePalette();
   const styles = useMemo(() => makeStyles(palette), [palette]);
 

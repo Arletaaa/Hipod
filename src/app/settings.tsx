@@ -139,7 +139,7 @@ export default function SettingsScreen() {
     >
       {showAbout ? (
         <View style={styles.about}>
-          <Text style={styles.aboutTitle}>iPod Player</Text>
+          <Text style={styles.aboutTitle}>HiPod</Text>
           <Text style={styles.aboutLine}>版本 v1.0.0</Text>
           <Text style={styles.aboutLine}>曲库 {tracks.length} 首</Text>
           {scanStats ? (

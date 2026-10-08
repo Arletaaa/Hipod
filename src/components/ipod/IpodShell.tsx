@@ -32,7 +32,7 @@ const BODY_PADDING = 0;
  * 因此与 LCD 的间距和与屏幕底边的间距相等，且不随页面变化漂移。
  */
 export function IpodShell({
-  lcdTitle = 'iPod',
+  lcdTitle = 'HiPod',
   lcdStatusIcon = '▶',
   children,
   wheel,
