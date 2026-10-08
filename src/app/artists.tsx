@@ -6,10 +6,12 @@ import { LibraryList } from '@/components/ipod/LibraryList';
 import type { MenuListItem } from '@/components/ipod/MenuList';
 import { useEnsureScanned, useMediaLibrary } from '@/hooks/useMediaLibrary';
 import { useWheelNav } from '@/hooks/useWheelNav';
+import { usePlaybackToggle } from '@/hooks/usePlaybackToggle';
 import { buildAlbums, buildArtists } from '@/services/libraryIndex';
 
 export default function ArtistsScreen() {
   const router = useRouter();
+  const togglePlayback = usePlaybackToggle();
   const { tracks } = useMediaLibrary();
   useEnsureScanned();
 
@@ -42,7 +44,7 @@ export default function ArtistsScreen() {
         onPrev: () => move(-1),
         onNext: () => move(1),
         onRotate: move,
-        onPlayPause: () => console.log('[artists] ▶❚❚'),
+        onPlayPause: togglePlayback,
         onSelect: enter,
       }}
     >

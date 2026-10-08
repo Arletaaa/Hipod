@@ -6,10 +6,12 @@ import { LibraryList } from '@/components/ipod/LibraryList';
 import type { MenuListItem } from '@/components/ipod/MenuList';
 import { useEnsureScanned, useMediaLibrary } from '@/hooks/useMediaLibrary';
 import { useWheelNav } from '@/hooks/useWheelNav';
+import { usePlaybackToggle } from '@/hooks/usePlaybackToggle';
 import { buildAlbums } from '@/services/libraryIndex';
 
 export default function AlbumsScreen() {
   const router = useRouter();
+  const togglePlayback = usePlaybackToggle();
   const { tracks } = useMediaLibrary();
   useEnsureScanned();
 
@@ -45,7 +47,7 @@ export default function AlbumsScreen() {
         onPrev: () => move(-1),
         onNext: () => move(1),
         onRotate: move,
-        onPlayPause: () => console.log('[albums] ▶❚❚'),
+        onPlayPause: togglePlayback,
         onSelect: enter,
       }}
     >

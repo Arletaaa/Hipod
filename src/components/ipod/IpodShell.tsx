@@ -3,7 +3,6 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AlbumArtPanel } from '@/components/ipod/AlbumArtPanel';
 import { BackdropGlow, MetalBody } from '@/components/ipod/Gradients';
 import { ClickWheel, type ClickWheelProps } from '@/components/ipod/ClickWheel';
 import { LcdScreen } from '@/components/ipod/LcdScreen';
@@ -17,8 +16,6 @@ export interface IpodShellProps {
   children?: ReactNode;
   /** 点击轮回调，原样透传给 ClickWheel。 */
   wheel?: ClickWheelProps;
-  /** 是否显示主菜单右侧的分屏封面区（iPod Classic 主菜单布局）。 */
-  showAlbumArt?: boolean;
 }
 
 /**
@@ -35,7 +32,6 @@ export function IpodShell({
   lcdStatusIcon = '▶',
   children,
   wheel,
-  showAlbumArt = false,
 }: IpodShellProps) {
   const palette = usePalette();
   const styles = useMemo(() => makeStyles(palette), [palette]);
@@ -48,14 +44,7 @@ export function IpodShell({
           <View style={styles.body}>
             <MetalBody />
             <LcdScreen title={lcdTitle} statusIcon={lcdStatusIcon}>
-              {showAlbumArt ? (
-                <View style={styles.split}>
-                  <View style={styles.splitMain}>{children}</View>
-                  <AlbumArtPanel />
-                </View>
-              ) : (
-                children
-              )}
+              {children}
             </LcdScreen>
           </View>
         </View>
@@ -104,13 +93,6 @@ function makeStyles(palette: Palette) {
       borderColor: palette.body.frameBorder,
       padding: 16,
       overflow: 'hidden',
-    },
-    split: {
-      flex: 1,
-      flexDirection: 'row',
-    },
-    splitMain: {
-      flex: 1,
     },
   });
 }

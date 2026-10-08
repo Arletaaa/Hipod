@@ -5,11 +5,13 @@ import { LibraryList } from '@/components/ipod/LibraryList';
 import type { MenuListItem } from '@/components/ipod/MenuList';
 import { useEnsureScanned, useMediaLibrary } from '@/hooks/useMediaLibrary';
 import { useWheelNav } from '@/hooks/useWheelNav';
+import { usePlaybackToggle } from '@/hooks/usePlaybackToggle';
 import { usePlayerStore } from '@/store/player';
 import { formatTrackDuration } from '@/utils/format';
 
 export default function SongsScreen() {
   const router = useRouter();
+  const togglePlayback = usePlaybackToggle();
   const { tracks } = useMediaLibrary();
   useEnsureScanned();
   const playQueue = usePlayerStore((s) => s.playQueue);
@@ -37,7 +39,7 @@ export default function SongsScreen() {
         onPrev: () => move(-1),
         onNext: () => move(1),
         onRotate: move,
-        onPlayPause: () => console.log('[songs] ▶❚❚'),
+        onPlayPause: togglePlayback,
         onSelect: enter,
       }}
     >

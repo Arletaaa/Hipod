@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { IpodShell } from '@/components/ipod/IpodShell';
 import { MenuList, type MenuListItem } from '@/components/ipod/MenuList';
 import { useWheelNav } from '@/hooks/useWheelNav';
+import { usePlaybackToggle } from '@/hooks/usePlaybackToggle';
 
 /** 音乐子菜单（§4 信息架构）。播放列表属于 v2（M6），此处不列出。 */
 const ITEMS: MenuListItem[] = [
@@ -14,6 +15,7 @@ const ITEMS: MenuListItem[] = [
 
 export default function MusicScreen() {
   const router = useRouter();
+  const togglePlayback = usePlaybackToggle();
 
   const { selected, move, enter } = useWheelNav({
     count: ITEMS.length,
@@ -45,7 +47,7 @@ export default function MusicScreen() {
         onPrev: () => move(-1),
         onNext: () => move(1),
         onRotate: move,
-        onPlayPause: () => console.log('[music] ▶❚❚'),
+        onPlayPause: togglePlayback,
         onSelect: enter,
       }}
     >

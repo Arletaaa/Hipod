@@ -72,7 +72,7 @@ src/
 
 | 风格 | 说明 |
 | --- | --- |
-| **经典银色**（默认） | 仿 iPod Classic：银色机身 + 纯白点击轮 + 白底蓝选中列表 + 顶部状态栏（标题 / 时间 / 播放图标 / 电量），主菜单右侧**分屏显示专辑封面** |
+| **经典银色**（默认） | 仿 iPod Classic：银色机身 + 纯白点击轮 + 白底列表（选中为蓝底白字） |
 | 深色背光 | 初版风格：黑色金属机身 + 蓝色背光 LCD + 白色扫描线纹理 |
 
 实现要点：
@@ -80,8 +80,6 @@ src/
 - 调色板集中在 [src/theme/palettes.ts](src/theme/palettes.ts)，组件样式用 `makeThemedStyles`
   预生成两套（[src/theme/themedStyles.ts](src/theme/themedStyles.ts)），切主题只换样式表、不重建组件树
 - 扫描线只在深色风格启用；浅色风格按参考图不带纹理
-- 分屏封面由 [src/components/ipod/AlbumArtPanel.tsx](src/components/ipod/AlbumArtPanel.tsx) 提供，
-  复用 `resolveArtwork` 的进程级封面缓存
 
 ## 点击轮操作映射
 
@@ -91,7 +89,10 @@ src/
 | 中键 | 确认进入；**正在播放页循环切换「进度 ↔ 音量」显示模式**；**设置页进入音量调节态** |
 | MENU | 返回上一级；在「关于」页内先退回设置列表 |
 | ⏮ / ⏭ | 上一首 / 下一首 |
-| ▶❚❚ | 播放 / 暂停 |
+| ▶❚❚ | 播放 / 暂停。**任一界面都可用**（有曲目在播时），由 `usePlaybackToggle` 统一处理 |
+
+> 主菜单底部在**有曲目时**会多出一行「正在播放 + 当前曲名」（中键进入正在播放界面）；
+> 曲名过长时该行做跑马灯循环滚动（[MarqueeText.tsx](src/components/ipod/MarqueeText.tsx)）。
 
 > 设置页的音量是「两段式」：先按中键进入调节态，此时转动滚轮才改音量；
 > **滚轮一松手就自动退出调节态**，要再调需重新按中键——避免浏览列表时误触改音量。

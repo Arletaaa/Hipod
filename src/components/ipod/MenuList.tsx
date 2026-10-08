@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
+import { MarqueeText } from '@/components/ipod/MarqueeText';
 import { usePalette } from '@/hooks/useTheme';
 import { fonts } from '@/theme/fonts';
 import type { Palette } from '@/theme/palettes';
@@ -9,6 +10,8 @@ export interface MenuListItem {
   id: string;
   label: string;
   sublabel?: string;
+  /** 副标题过长时改为跑马灯滚动（如「正在播放」的当前曲名）。 */
+  marqueeSublabel?: boolean;
 }
 
 export interface MenuListProps {
@@ -20,10 +23,8 @@ export interface MenuListProps {
 }
 
 /**
- * iPod 菜单式列表：
- * - 选中项反色高亮（深色主题=白底蓝字 / 浅色主题=蓝底白字，同 iPod Classic）
- * - 行尾显示「>」箭头，暗示可进入下一级
- * - 默认占满 LCD 内容区（长列表在内部滚动），也可用 maxHeight 限制高度上限
+ * iPod 菜单式列表：选中项反色高亮（深色主题=白底蓝字 / 浅色主题=蓝底白字）。
+ * 默认占满 LCD 内容区（长列表在内部滚动），也可用 maxHeight 限制高度上限。
  */
 export function MenuList({
   items,
@@ -67,15 +68,21 @@ export function MenuList({
                 {item.label}
               </Text>
               {item.sublabel ? (
-                <Text
-                  numberOfLines={1}
-                  style={[styles.sublabel, isSelected && styles.sublabelSelected]}
-                >
-                  {item.sublabel}
-                </Text>
+                item.marqueeSublabel ? (
+                  <MarqueeText
+                    text={item.sublabel}
+                    style={[styles.sublabel, isSelected && styles.sublabelSelected]}
+                  />
+                ) : (
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.sublabel, isSelected && styles.sublabelSelected]}
+                  >
+                    {item.sublabel}
+                  </Text>
+                )
               ) : null}
             </View>
-            <Text style={[styles.chevron, isSelected && styles.chevronSelected]}>›</Text>
           </View>
         );
       }}
@@ -94,7 +101,6 @@ function makeStyles(palette: Palette) {
     row: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
       paddingHorizontal: 8,
       borderRadius: 2,
     },
@@ -102,7 +108,7 @@ function makeStyles(palette: Palette) {
       backgroundColor: palette.lcd.selectionBg,
     },
     rowText: {
-      flexShrink: 1,
+      flex: 1,
     },
     label: {
       color: palette.lcd.text,
@@ -124,15 +130,6 @@ function makeStyles(palette: Palette) {
     },
     sublabelSelected: {
       color: palette.lcd.selectionSubText,
-    },
-    chevron: {
-      color: palette.lcd.chevron,
-      fontSize: 20,
-      lineHeight: 22,
-      marginLeft: 6,
-    },
-    chevronSelected: {
-      color: palette.lcd.selectionText,
     },
   });
 }

@@ -6,6 +6,7 @@ import { IpodShell } from '@/components/ipod/IpodShell';
 import { MenuList, type MenuListItem } from '@/components/ipod/MenuList';
 import { useMediaLibrary } from '@/hooks/useMediaLibrary';
 import { useWheelNav } from '@/hooks/useWheelNav';
+import { usePlaybackToggle } from '@/hooks/usePlaybackToggle';
 import { usePlayerStore } from '@/store/player';
 import { REPEAT_LABELS, useSettingsStore } from '@/store/settings';
 import { fonts } from '@/theme/fonts';
@@ -22,6 +23,7 @@ const VOLUME_STEP = 0.05;
 export default function SettingsScreen() {
   const router = useRouter();
   const styles = useStyles();
+  const togglePlayback = usePlaybackToggle();
   const repeatMode = useSettingsStore((s) => s.repeatMode);
   const shuffle = useSettingsStore((s) => s.shuffle);
   const theme = useSettingsStore((s) => s.theme);
@@ -131,7 +133,7 @@ export default function SettingsScreen() {
         onRotate,
         // 滚轮松手 → 退出音量调节态（下次要调需再按一次中键）
         onRotateEnd: () => setVolumeAdjusting(false),
-        onPlayPause: () => console.log('[settings] ▶❚❚'),
+        onPlayPause: togglePlayback,
         onSelect: enter,
       }}
     >

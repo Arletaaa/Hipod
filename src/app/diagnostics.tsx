@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { IpodShell } from '@/components/ipod/IpodShell';
 import { useMediaLibrary } from '@/hooks/useMediaLibrary';
+import { usePlaybackToggle } from '@/hooks/usePlaybackToggle';
 import { SCAN_DIRECTORY_LABELS } from '@/services/filesystemScan';
 import { fonts } from '@/theme/fonts';
 import { makeThemedStyles } from '@/theme/themedStyles';
@@ -23,6 +24,7 @@ export default function DiagnosticsScreen() {
   const router = useRouter();
   const { tracks, scanStats, scanStatus, scanError, scan } = useMediaLibrary();
   const styles = useStyles();
+  const togglePlayback = usePlaybackToggle();
 
   const [permission, setPermission] = useState<string>('检查中…');
   const scrollRef = useRef<ScrollView>(null);
@@ -61,7 +63,7 @@ export default function DiagnosticsScreen() {
         onPrev: () => onScroll(-1),
         onNext: () => onScroll(1),
         onRotate: onScroll,
-        onPlayPause: () => console.log('[diagnostics] ▶❚❚'),
+        onPlayPause: togglePlayback,
         onSelect: () => void scan(),
       }}
     >

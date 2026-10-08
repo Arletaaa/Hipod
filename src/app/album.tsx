@@ -6,6 +6,7 @@ import { LibraryList } from '@/components/ipod/LibraryList';
 import type { MenuListItem } from '@/components/ipod/MenuList';
 import { useEnsureScanned, useMediaLibrary } from '@/hooks/useMediaLibrary';
 import { useWheelNav } from '@/hooks/useWheelNav';
+import { usePlaybackToggle } from '@/hooks/usePlaybackToggle';
 import { buildAlbums } from '@/services/libraryIndex';
 import { usePlayerStore } from '@/store/player';
 import { formatTrackDuration } from '@/utils/format';
@@ -13,6 +14,7 @@ import { formatTrackDuration } from '@/utils/format';
 /** 专辑 → 曲目列表；中键以整张专辑为队列开始播放（iPod 行为）。 */
 export default function AlbumScreen() {
   const router = useRouter();
+  const togglePlayback = usePlaybackToggle();
   const params = useLocalSearchParams<{ album?: string; artist?: string }>();
   const { tracks } = useMediaLibrary();
   useEnsureScanned();
@@ -55,7 +57,7 @@ export default function AlbumScreen() {
         onPrev: () => move(-1),
         onNext: () => move(1),
         onRotate: move,
-        onPlayPause: () => console.log('[album] ▶❚❚'),
+        onPlayPause: togglePlayback,
         onSelect: enter,
       }}
     >

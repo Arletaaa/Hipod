@@ -6,11 +6,13 @@ import { LibraryList } from '@/components/ipod/LibraryList';
 import type { MenuListItem } from '@/components/ipod/MenuList';
 import { useEnsureScanned, useMediaLibrary } from '@/hooks/useMediaLibrary';
 import { useWheelNav } from '@/hooks/useWheelNav';
+import { usePlaybackToggle } from '@/hooks/usePlaybackToggle';
 import { buildAlbums, buildArtists } from '@/services/libraryIndex';
 
 /** 歌手 → 专辑列表（§4 信息架构：歌手 ──▶ 专辑 ──▶ 曲目）。 */
 export default function ArtistScreen() {
   const router = useRouter();
+  const togglePlayback = usePlaybackToggle();
   const params = useLocalSearchParams<{ artist?: string }>();
   const { tracks } = useMediaLibrary();
   useEnsureScanned();
@@ -52,7 +54,7 @@ export default function ArtistScreen() {
         onPrev: () => move(-1),
         onNext: () => move(1),
         onRotate: move,
-        onPlayPause: () => console.log('[artist] ▶❚❚'),
+        onPlayPause: togglePlayback,
         onSelect: enter,
       }}
     >
