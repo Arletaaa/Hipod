@@ -39,6 +39,9 @@ yarn-error.*
 # 纯逻辑断言脚本的编译产物
 .verify/
 
+# 真机验证截图（本地排查用）
+.screenshots/
+
 example
 
 # IDE
