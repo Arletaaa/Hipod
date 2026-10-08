@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { WheelSurface } from '@/components/ipod/Gradients';
-import { useThemeName } from '@/hooks/useTheme';
+import { BevelEdges, NoiseLayer, TEXTURES } from '@/components/ipod/Materials';
+import { usePalette } from '@/hooks/useTheme';
 import { fonts } from '@/theme/fonts';
-import { PALETTES, type Palette, type ThemeName } from '@/theme/palettes';
+import type { Palette } from '@/theme/palettes';
 
 export interface ClickWheelProps {
   onMenu?: () => void;
@@ -25,11 +26,15 @@ const CENTER = 128; // 中键直径
 const DIR = 64; // 四方向键边长
 const ROTATE_STEP = Math.PI / 6; // 每 30° 触发一档
 
+/** 随转动旋转的颗粒贴图：做成比滚轮更大的方形，旋转时不会露出边角。 */
+const GRAIN_SIZE = SIZE * 1.6;
+const GRAIN_OFFSET = -(GRAIN_SIZE - SIZE) / 2;
+
 /**
- * iPod 点击轮（§5.3）：
- * - 环上四个方向键（MENU / ⏮ / ⏭ / ▶❚❚）+ 中键，可点击
- * - 滚轮环带可转动（Pan 手势按角度累计，每 30° 触发一次 onRotate）
- * - **无惯性**：手指离开即停止，转动多少走多少
+ * iPod 点击轮（§5.3）：哑光硅胶材质。
+ * - 环带为硅胶面，表面颗粒贴图**随手指转动同步旋转**，产生"材质被搓动"的真实感
+ * - 四方向键 + 中键为硅胶按键，图标做成微凹刻印（暗字 + 下方 1px 亮边）
+ * - 手势：Pan 按角度累计，每 30° 触发一次 onRotate；**无惯性**，松手即停
  */
 export function ClickWheel({
   onMenu,
@@ -40,6 +45,9 @@ export function ClickWheel({
   onRotate,
   onRotateEnd,
 }: ClickWheelProps) {
+  const palette = usePalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
+
   const onRotateRef = useRef(onRotate);
   useEffect(() => {
     onRotateRef.current = onRotate;
@@ -52,7 +60,9 @@ export function ClickWheel({
 
   const angleRef = useRef(0);
   const accumRef = useRef(0);
-  const styles = STYLES_BY_THEME[useThemeName()];
+  /** 累计旋转角度（度，不取模）：驱动硅胶颗粒层同步旋转。 */
+  const totalDegRef = useRef(0);
+  const rotationDeg = useRef(new Animated.Value(0)).current;
 
   const emit = useCallback((dir: number) => {
     onRotateRef.current?.(dir);
@@ -73,6 +83,11 @@ export function ClickWheel({
           else if (delta < -Math.PI) delta += 2 * Math.PI;
           angleRef.current = angle;
           accumRef.current += delta;
+
+          // 颗粒层跟随手指连续旋转（不走 state，避免每帧重渲染）
+          totalDegRef.current += (delta * 180) / Math.PI;
+          rotationDeg.setValue(totalDegRef.current);
+
           // 顺时针（angle 增大）→ 下移；逆时针 → 上移
           while (accumRef.current >= ROTATE_STEP) {
             accumRef.current -= ROTATE_STEP;
@@ -90,23 +105,42 @@ export function ClickWheel({
         .onFinalize(() => {
           onRotateEndRef.current?.();
         }),
-    [emit],
+    [emit, rotationDeg],
   );
+
+  const grainRotate = rotationDeg.interpolate({
+    inputRange: [-3600, 3600],
+    outputRange: ['-3600deg', '3600deg'],
+  });
 
   return (
     <View style={styles.container}>
-      {/* 旋转环带：手势绑定在圆环背景上，方向键浮于其上互不冲突 */}
+      {/* 旋转环带：手势绑定在硅胶环面上，方向键浮于其上互不冲突 */}
       <GestureDetector gesture={rotationGesture}>
         <View style={styles.wheel}>
           <WheelSurface />
+          {/* 硅胶颗粒：随转动同步旋转 */}
+          <Animated.Image
+            source={TEXTURES.siliconeGrain}
+            resizeMode="repeat"
+            style={[styles.grain, { transform: [{ rotate: grainRotate }] }]}
+          />
+          <NoiseLayer opacity={0.4} />
+          <BevelEdges radius={RADIUS} />
         </View>
       </GestureDetector>
 
+      {/* 中键：硅胶按键（外圈凹陷 + 内圈凸起） */}
       <Pressable
         onPress={onSelect}
         style={({ pressed }) => [styles.center, pressed && styles.pressed]}
       >
-        <View style={styles.centerInner} />
+        <View style={styles.centerInner}>
+          <View style={styles.centerGrain} pointerEvents="none">
+            <Image source={TEXTURES.siliconeGrain} resizeMode="repeat" style={styles.grainFill} />
+          </View>
+          <BevelEdges radius={(CENTER - 22) / 2} />
+        </View>
       </Pressable>
 
       <Pressable
@@ -149,12 +183,20 @@ const makeStyles = (palette: Palette) =>
       left: 0,
       right: 0,
       bottom: 0,
-      borderRadius: SIZE / 2,
-      // 底色仅作渐变兜底；WheelSurface 铺满其上
+      borderRadius: RADIUS,
       backgroundColor: palette.body.wheel2,
       borderWidth: 1,
       borderColor: palette.body.wheelBorder,
       overflow: 'hidden',
+    },
+    /** 随转动旋转的颗粒层（比滚轮更大，避免旋转时露角）。 */
+    grain: {
+      position: 'absolute',
+      width: GRAIN_SIZE,
+      height: GRAIN_SIZE,
+      left: GRAIN_OFFSET,
+      top: GRAIN_OFFSET,
+      opacity: 0.9,
     },
     center: {
       position: 'absolute',
@@ -165,7 +207,7 @@ const makeStyles = (palette: Palette) =>
       borderRadius: CENTER / 2,
       backgroundColor: palette.body.wheelCenter,
       borderWidth: 1,
-      borderColor: palette.body.wheelBorder,
+      borderColor: palette.material.siliconeShade,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -174,6 +216,21 @@ const makeStyles = (palette: Palette) =>
       height: CENTER - 22,
       borderRadius: (CENTER - 22) / 2,
       backgroundColor: palette.body.wheelCenterInner,
+      overflow: 'hidden',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    centerGrain: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      opacity: 0.75,
+    },
+    grainFill: {
+      width: '100%',
+      height: '100%',
     },
     dir: {
       position: 'absolute',
@@ -186,24 +243,25 @@ const makeStyles = (palette: Palette) =>
     dirBottom: { bottom: 8, left: RADIUS - DIR / 2 },
     dirLeft: { left: 8, top: RADIUS - DIR / 2 },
     dirRight: { right: 8, top: RADIUS - DIR / 2 },
+    /** 刻印感：暗字 + 下方 1px 亮边（凹刻）。 */
     menuLabel: {
       color: palette.body.wheelIcon,
       fontFamily: fonts.key,
       fontSize: 13,
       letterSpacing: 2,
+      textShadowColor: palette.material.siliconeSheen,
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 0,
     },
     iconLabel: {
       color: palette.body.wheelIcon,
       fontSize: 20,
+      textShadowColor: palette.material.siliconeSheen,
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 0,
     },
     pressed: {
-      opacity: 0.55,
-      transform: [{ scale: 0.94 }],
+      opacity: 0.62,
+      transform: [{ scale: 0.96 }],
     },
   });
-
-/** 预生成两套主题样式，切换主题时零成本取用。 */
-const STYLES_BY_THEME: Record<ThemeName, ReturnType<typeof makeStyles>> = {
-  dark: makeStyles(PALETTES.dark),
-  light: makeStyles(PALETTES.light),
-};

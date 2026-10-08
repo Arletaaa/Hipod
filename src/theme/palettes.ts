@@ -1,7 +1,10 @@
 /**
  * 双主题调色板：
  * - `dark`  —— 深色蓝白背光（初版风格）
- * - `light` —— iPod Classic 浅色经典风格（银色机身 + 白色点击轮 + 白底蓝选中）
+ * - `light` —— iPod Classic 浅色经典风格（银色阳极氧化机身 + 白色硅胶点击轮）
+ *
+ * 设计方向「工业复刻」：真实材质优先 —— 阳极氧化铝机身、哑光硅胶操作件、
+ * 纯黑电子框屏幕（内框直角 / 外框圆角）、早期 TN 屏观感。
  *
  * 所有组件样式都从调色板派生（模块作用域预生成两套 StyleSheet），
  * 切换主题时通过 settings store 的 theme 字段驱动重渲染。
@@ -29,11 +32,11 @@ export interface Palette {
     selectionSubText: string;
   };
   body: {
-    /** 机身竖向渐变。 */
+    /** 机身竖向渐变（阳极氧化铝）。 */
     metal1: string;
     metal2: string;
     metal3: string;
-    /** 点击轮表面径向渐变。 */
+    /** 点击轮表面径向渐变（硅胶）。 */
     wheel1: string;
     wheel2: string;
     wheel3: string;
@@ -45,6 +48,33 @@ export interface Palette {
     frameBorder: string;
     /** 页面背景。 */
     background: string;
+  };
+  /**
+   * 材质相关：真实感的关键（黑电子框、硅胶、金属高光/阴影、复古屏）。
+   */
+  material: {
+    /** 屏幕黑电子框（外框圆角）。 */
+    bezel: string;
+    /** 电子框内唇高光，制造凹槽立体感。 */
+    bezelLip: string;
+    /** 屏面与电子框之间的深色缝隙。 */
+    screenGap: string;
+    /** 金属机身顶部高光边。 */
+    metalHighlight: string;
+    /** 金属机身底部阴影边。 */
+    metalShadow: string;
+    /** 复古屏的底色偏色（早期 TN 屏略偏冷绿）。 */
+    screenCast: string;
+    /** 像素网格线颜色。 */
+    screenGrid: string;
+    /** 硅胶件边缘的暗部（让操作件"陷入"机身）。 */
+    siliconeShade: string;
+    /** 硅胶件上的柔光（顶部受光）。 */
+    siliconeSheen: string;
+    /** 拉丝贴图的不透明度（0–1）。 */
+    brushedOpacity: number;
+    /** 颗粒贴图的不透明度（0–1）。 */
+    grainOpacity: number;
   };
   backdrop: {
     glow: string;
@@ -71,18 +101,31 @@ export const PALETTES: Record<ThemeName, Palette> = {
       selectionSubText: '#0d2340',
     },
     body: {
-      metal1: '#2c2c32',
-      metal2: '#17171b',
-      metal3: '#0f0f13',
-      wheel1: '#26262b',
-      wheel2: '#141419',
-      wheel3: '#0d0d11',
-      wheelCenter: '#0d0d11',
-      wheelCenterInner: '#26262b',
-      wheelIcon: '#9cc6ee',
-      wheelBorder: '#000',
-      frameBorder: '#000',
+      metal1: '#33343a',
+      metal2: '#1b1c20',
+      metal3: '#0e0f12',
+      wheel1: '#2b2c30',
+      wheel2: '#1c1d21',
+      wheel3: '#101114',
+      wheelCenter: '#191a1e',
+      wheelCenterInner: '#26272c',
+      wheelIcon: '#c9ccd2',
+      wheelBorder: '#000000',
+      frameBorder: '#000000',
       background: '#0b0b0e',
+    },
+    material: {
+      bezel: '#050506',
+      bezelLip: 'rgba(255,255,255,0.10)',
+      screenGap: '#000000',
+      metalHighlight: 'rgba(255,255,255,0.16)',
+      metalShadow: 'rgba(0,0,0,0.65)',
+      screenCast: 'rgba(10,30,50,0.0)',
+      screenGrid: 'rgba(230,244,255,0.05)',
+      siliconeShade: 'rgba(0,0,0,0.55)',
+      siliconeSheen: 'rgba(255,255,255,0.10)',
+      brushedOpacity: 0.5,
+      grainOpacity: 0.85,
     },
     backdrop: { glow: '#1a3a5f', glowOpacity: 0.55 },
   },
@@ -105,18 +148,34 @@ export const PALETTES: Record<ThemeName, Palette> = {
       selectionSubText: '#dbe6f7',
     },
     body: {
-      metal1: '#e2e2e2',
-      metal2: '#c9c9c9',
-      metal3: '#a9a9a9',
-      wheel1: '#ffffff',
-      wheel2: '#f2f2f2',
-      wheel3: '#dcdcdc',
-      wheelCenter: '#e6e6e6',
-      wheelCenterInner: '#f7f7f7',
-      wheelIcon: '#5f5f5f',
-      wheelBorder: '#b5b5b5',
-      frameBorder: '#8f8f8f',
-      background: '#c9c9c9',
+      // 银色阳极氧化铝
+      metal1: '#eceae6',
+      metal2: '#d2d0cb',
+      metal3: '#a9a7a3',
+      // 白色哑光硅胶
+      wheel1: '#fbfbf9',
+      wheel2: '#f0f0ee',
+      wheel3: '#dcdcda',
+      wheelCenter: '#eceae8',
+      wheelCenterInner: '#f7f7f5',
+      wheelIcon: '#63666b',
+      wheelBorder: '#c4c4c1',
+      frameBorder: '#8d8b87',
+      background: '#c6c4c0',
+    },
+    material: {
+      bezel: '#08090a',
+      bezelLip: 'rgba(255,255,255,0.14)',
+      screenGap: '#000000',
+      metalHighlight: 'rgba(255,255,255,0.75)',
+      metalShadow: 'rgba(0,0,0,0.30)',
+      // 早期 TN 屏那点冷绿偏色
+      screenCast: 'rgba(196,214,198,0.16)',
+      screenGrid: 'rgba(30,40,35,0.045)',
+      siliconeShade: 'rgba(0,0,0,0.14)',
+      siliconeSheen: 'rgba(255,255,255,0.55)',
+      brushedOpacity: 0.75,
+      grainOpacity: 0.9,
     },
     backdrop: { glow: '#ffffff', glowOpacity: 0.5 },
   },

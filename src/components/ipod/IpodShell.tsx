@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackdropGlow, MetalBody } from '@/components/ipod/Gradients';
 import { ClickWheel, type ClickWheelProps } from '@/components/ipod/ClickWheel';
 import { LcdScreen } from '@/components/ipod/LcdScreen';
+import { BevelEdges, BrushedLayer, NoiseLayer } from '@/components/ipod/Materials';
 import { usePalette } from '@/hooks/useTheme';
 import type { Palette } from '@/theme/palettes';
 
@@ -18,14 +19,15 @@ export interface IpodShellProps {
   wheel?: ClickWheelProps;
 }
 
+/** 机身圆角（外框）；电子框外圆角在其内部由 LcdScreen 自己控制。 */
+const BODY_RADIUS = 30;
+
 /**
- * iPod 外壳：上半屏固定尺寸的 LCD 机身 + 下半屏居中的点击轮。
+ * iPod 外壳：上半屏黑电子框屏幕 + 下半屏硅胶点击轮，整体为阳极氧化铝机身。
  *
- * 布局要点（保证所有页面完全一致）：
- * - 两个 slot 各占一半高度（flex:1），因此 LCD 底边始终落在屏幕中线附近，
- *   机身大小与内容多少无关 —— 列表再长也只是在 LCD 内部滚动。
- * - 点击轮在下半屏内垂直居中，于是它与 LCD 的间距和与屏幕底边的间距相等，
- *   整体位于屏幕中下位置，且不会随页面变化而漂移。
+ * 材质分层（自下而上）：阳极氧化铝渐变 → 拉丝贴图 → 倒角高光/阴影 → 细微噪点。
+ * 布局：两个 slot 各占一半高度，LCD 底边落在屏幕中线附近；点击轮在下半屏居中，
+ * 因此与 LCD 的间距和与屏幕底边的间距相等，且不随页面变化漂移。
  */
 export function IpodShell({
   lcdTitle = 'iPod',
@@ -43,9 +45,14 @@ export function IpodShell({
         <View style={styles.lcdSlot}>
           <View style={styles.body}>
             <MetalBody />
-            <LcdScreen title={lcdTitle} statusIcon={lcdStatusIcon}>
-              {children}
-            </LcdScreen>
+            <BrushedLayer />
+            <BevelEdges radius={BODY_RADIUS} />
+            <NoiseLayer opacity={0.5} />
+            <View style={styles.screenRecess}>
+              <LcdScreen title={lcdTitle} statusIcon={lcdStatusIcon}>
+                {children}
+              </LcdScreen>
+            </View>
           </View>
         </View>
 
@@ -66,33 +73,38 @@ function makeStyles(palette: Palette) {
     safeArea: {
       flex: 1,
       alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
     },
-    /** 上半屏：LCD 机身槽位。 */
     lcdSlot: {
       flex: 1,
       width: '100%',
       alignItems: 'center',
       justifyContent: 'center',
     },
-    /** 下半屏：点击轮槽位（内部居中 → 上下间距相等）。 */
     wheelSlot: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
     },
+    /** 阳极氧化铝机身。 */
     body: {
       width: '100%',
-      maxWidth: 360,
+      maxWidth: 372,
       flex: 1,
-      // 底色仅作渐变兜底；MetalBody 铺满其上，overflow 裁出圆角
       backgroundColor: palette.body.metal2,
-      borderRadius: 24,
+      borderRadius: BODY_RADIUS,
       borderWidth: 1,
       borderColor: palette.body.frameBorder,
-      padding: 16,
+      padding: 12,
       overflow: 'hidden',
+    },
+    /** 机身内凹槽：让黑电子框像嵌进金属里。 */
+    screenRecess: {
+      flex: 1,
+      borderRadius: 22,
+      padding: 2,
+      backgroundColor: palette.material.siliconeShade,
     },
   });
 }

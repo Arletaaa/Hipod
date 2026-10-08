@@ -33,17 +33,38 @@ export function LcdBacklight() {
   );
 }
 
-/** LCD 扫描线纹理：每 4px 一条极淡细线，营造像素屏质感。 */
-export function Scanlines({ opacity = 0.05 }: { opacity?: number }) {
+/**
+ * 复古像素网格：每 4px 一条极淡细线（两个方向），模拟早期 LCD 的像素栅格。
+ * 颜色取自材质的 screenGrid，明暗主题各自适配。
+ */
+export function PixelGrid() {
+  const palette = usePalette();
+  const color = palette.material.screenGrid;
+  return (
+    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
+      <Defs>
+        <Pattern id="lcdPixelGrid" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+          <Rect x="0" y="0" width="4" height="1" fill={color} />
+          <Rect x="0" y="0" width="1" height="4" fill={color} opacity={0.6} />
+        </Pattern>
+      </Defs>
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#lcdPixelGrid)" />
+    </Svg>
+  );
+}
+
+/** 屏幕暗角：中心透明、四角压暗，让屏面"凹"进去。 */
+export function Vignette() {
   const palette = usePalette();
   return (
     <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
       <Defs>
-        <Pattern id="lcdScanlines" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
-          <Rect x="0" y="0" width="4" height="1" fill={palette.lcd.text} opacity={opacity} />
-        </Pattern>
+        <RadialGradient id="lcdVignette" cx="50%" cy="45%" r="82%">
+          <Stop offset="62%" stopColor={palette.material.screenGap} stopOpacity={0} />
+          <Stop offset="100%" stopColor={palette.material.screenGap} stopOpacity={0.26} />
+        </RadialGradient>
       </Defs>
-      <Rect x="0" y="0" width="100%" height="100%" fill="url(#lcdScanlines)" />
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#lcdVignette)" />
     </Svg>
   );
 }
