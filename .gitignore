@@ -36,6 +36,9 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# 纯逻辑断言脚本的编译产物
+.verify/
+
 example
 
 # IDE

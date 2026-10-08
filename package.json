@@ -46,7 +46,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "verify": "tsc -p scripts/tsconfig.verify.json && node .verify/scripts/verify-logic.js"
   },
   "private": true
 }

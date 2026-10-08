@@ -1,0 +1,26 @@
+// 仅供 scripts/verify-logic.ts 使用：把纯逻辑模块编译成可在 Node 里直接跑的 CommonJS。
+// 刻意排除 react-native / expo 相关类型与模块，保证无需设备即可运行。
+// 注：不使用 baseUrl（TS 6 已弃用），paths 的值相对本配置文件解析。
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "node16",
+    "moduleResolution": "node16",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "types": [],
+    "outDir": "../.verify",
+    "rootDir": "..",
+    "paths": {
+      "@/*": ["../src/*"]
+    }
+  },
+  "include": [
+    "verify-logic.ts",
+    "../src/services/libraryIndex.ts",
+    "../src/utils/format.ts",
+    "../src/utils/array.ts",
+    "../src/types/track.ts"
+  ]
+}

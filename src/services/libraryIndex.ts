@@ -26,6 +26,14 @@ function albumArtistOf(track: Track): string {
 }
 
 /**
+ * 音轨号排序权重：缺失（0 / 非正数）统一排到有编号的曲目之后。
+ * 直接用 0 参与比较会让「没有音轨号」的曲目排到第 1 位，与预期相反。
+ */
+function rankTrackNumber(trackNumber: number): number {
+  return trackNumber > 0 ? trackNumber : Number.MAX_SAFE_INTEGER;
+}
+
+/**
  * 由曲目列表聚合出专辑（§4 信息架构：专辑 → 曲目）。
  * 排序：专辑艺术家 → 专辑名；专辑内按音轨号，缺失音轨号时按标题。
  */
@@ -45,8 +53,11 @@ export function buildAlbums(tracks: Track[]): AlbumGroup[] {
 
   const albums = [...map.values()];
   for (const album of albums) {
+    // 音轨号缺失（0）的曲目排到最后：专辑内正常曲目按序号在前，杂项曲目垫底
     album.tracks.sort(
-      (a, b) => (a.trackNumber || 0) - (b.trackNumber || 0) || a.title.localeCompare(b.title),
+      (a, b) =>
+        rankTrackNumber(a.trackNumber) - rankTrackNumber(b.trackNumber) ||
+        a.title.localeCompare(b.title),
     );
   }
   albums.sort(

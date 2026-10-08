@@ -30,6 +30,16 @@ npx expo start
 
 真机调试：手机开启「开发者选项 → USB 调试」，`adb devices` 能列出设备后执行 `npx expo run:android`。
 
+### 无需设备的校验
+
+```bash
+npx tsc --noEmit                 # 全量类型检查
+npm run verify                   # 纯逻辑断言（专辑/歌手分组、时长格式化、洗牌）
+```
+
+`npm run verify` 把纯函数编译到 `.verify/` 后用 Node 直接跑断言，不需要模拟器或真机，
+适合在改完分组 / 排序 / 格式化逻辑后快速回归。渲染与原生行为仍需在设备上验证。
+
 ## 目录结构
 
 ```
