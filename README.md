@@ -66,6 +66,23 @@ src/
 └── utils/                  # format / array
 ```
 
+## 界面风格（双主题）
+
+设置 → **界面风格** 可切换两种风格，选择会持久化：
+
+| 风格 | 说明 |
+| --- | --- |
+| **经典银色**（默认） | 仿 iPod Classic：银色机身 + 纯白点击轮 + 白底蓝选中列表 + 顶部状态栏（标题 / 时间 / 播放图标 / 电量），主菜单右侧**分屏显示专辑封面** |
+| 深色背光 | 初版风格：黑色金属机身 + 蓝色背光 LCD + 白色扫描线纹理 |
+
+实现要点：
+
+- 调色板集中在 [src/theme/palettes.ts](src/theme/palettes.ts)，组件样式用 `makeThemedStyles`
+  预生成两套（[src/theme/themedStyles.ts](src/theme/themedStyles.ts)），切主题只换样式表、不重建组件树
+- 扫描线只在深色风格启用；浅色风格按参考图不带纹理
+- 分屏封面由 [src/components/ipod/AlbumArtPanel.tsx](src/components/ipod/AlbumArtPanel.tsx) 提供，
+  复用 `resolveArtwork` 的进程级封面缓存
+
 ## 点击轮操作映射
 
 | 操作 | 作用 |

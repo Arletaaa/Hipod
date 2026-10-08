@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '@/theme/colors';
+import { usePalette } from '@/hooks/useTheme';
 import { fonts } from '@/theme/fonts';
+import type { Palette } from '@/theme/palettes';
 
 export interface MenuListItem {
   id: string;
@@ -19,8 +20,10 @@ export interface MenuListProps {
 }
 
 /**
- * iPod 菜单式列表：选中项反色高亮（白底蓝字），滚轮/按键移动选中时自动居中滚动。
- * 默认占满 LCD 内容区（长列表在内部滚动），也可用 maxHeight 限制高度上限。
+ * iPod 菜单式列表：
+ * - 选中项反色高亮（深色主题=白底蓝字 / 浅色主题=蓝底白字，同 iPod Classic）
+ * - 行尾显示「>」箭头，暗示可进入下一级
+ * - 默认占满 LCD 内容区（长列表在内部滚动），也可用 maxHeight 限制高度上限
  */
 export function MenuList({
   items,
@@ -29,6 +32,8 @@ export function MenuList({
   maxHeight,
 }: MenuListProps) {
   const listRef = useRef<FlatList<MenuListItem>>(null);
+  const palette = usePalette();
+  const styles = useMemo(() => makeStyles(palette), [palette]);
 
   useEffect(() => {
     if (items.length === 0) return;
@@ -57,17 +62,20 @@ export function MenuList({
         const isSelected = index === selectedIndex;
         return (
           <View style={[styles.row, { height: rowHeight }, isSelected && styles.rowSelected]}>
-            <Text numberOfLines={1} style={[styles.label, isSelected && styles.labelSelected]}>
-              {item.label}
-            </Text>
-            {item.sublabel ? (
-              <Text
-                numberOfLines={1}
-                style={[styles.sublabel, isSelected && styles.sublabelSelected]}
-              >
-                {item.sublabel}
+            <View style={styles.rowText}>
+              <Text numberOfLines={1} style={[styles.label, isSelected && styles.labelSelected]}>
+                {item.label}
               </Text>
-            ) : null}
+              {item.sublabel ? (
+                <Text
+                  numberOfLines={1}
+                  style={[styles.sublabel, isSelected && styles.sublabelSelected]}
+                >
+                  {item.sublabel}
+                </Text>
+              ) : null}
+            </View>
+            <Text style={[styles.chevron, isSelected && styles.chevronSelected]}>›</Text>
           </View>
         );
       }}
@@ -77,38 +85,54 @@ export function MenuList({
   );
 }
 
-const styles = StyleSheet.create({
-  list: {
-    // 占满 LCD 内容区剩余空间；内容超出时列表自身滚动
-    flex: 1,
-  },
-  row: {
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-    borderRadius: 2,
-  },
-  rowSelected: {
-    backgroundColor: colors.lcd.text,
-  },
-  label: {
-    color: colors.lcd.text,
-    fontFamily: fonts.lcd,
-    // VT323 默认行高约为字号的 1.5 倍，会让「主标题 + 副标题」超出 rowHeight
-    // 并向上溢出（第一行标题被列表顶部裁掉），因此显式收紧行高。
-    fontSize: 20,
-    lineHeight: 22,
-  },
-  labelSelected: {
-    color: colors.lcd.bg1,
-  },
-  sublabel: {
-    color: colors.lcd.textSecondary,
-    fontFamily: fonts.lcd,
-    fontSize: 14,
-    lineHeight: 16,
-    marginTop: 2,
-  },
-  sublabelSelected: {
-    color: colors.lcd.bg2,
-  },
-});
+function makeStyles(palette: Palette) {
+  return StyleSheet.create({
+    list: {
+      // 占满 LCD 内容区剩余空间；内容超出时列表自身滚动
+      flex: 1,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 8,
+      borderRadius: 2,
+    },
+    rowSelected: {
+      backgroundColor: palette.lcd.selectionBg,
+    },
+    rowText: {
+      flexShrink: 1,
+    },
+    label: {
+      color: palette.lcd.text,
+      fontFamily: fonts.lcd,
+      // VT323 默认行高约为字号的 1.5 倍，会让「主标题 + 副标题」超出 rowHeight
+      // 并向上溢出（第一行标题被列表顶部裁掉），因此显式收紧行高。
+      fontSize: 20,
+      lineHeight: 22,
+    },
+    labelSelected: {
+      color: palette.lcd.selectionText,
+    },
+    sublabel: {
+      color: palette.lcd.textSecondary,
+      fontFamily: fonts.lcd,
+      fontSize: 14,
+      lineHeight: 16,
+      marginTop: 2,
+    },
+    sublabelSelected: {
+      color: palette.lcd.selectionSubText,
+    },
+    chevron: {
+      color: palette.lcd.chevron,
+      fontSize: 20,
+      lineHeight: 22,
+      marginLeft: 6,
+    },
+    chevronSelected: {
+      color: palette.lcd.selectionText,
+    },
+  });
+}

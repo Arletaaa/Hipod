@@ -8,8 +8,9 @@ import { useMediaLibrary } from '@/hooks/useMediaLibrary';
 import { useWheelNav } from '@/hooks/useWheelNav';
 import { usePlayerStore } from '@/store/player';
 import { REPEAT_LABELS, useSettingsStore } from '@/store/settings';
-import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
+import { THEME_LABELS } from '@/theme/palettes';
+import { makeThemedStyles } from '@/theme/themedStyles';
 
 /** 设置页里滚轮每档对应的音量增减。 */
 const VOLUME_STEP = 0.05;
@@ -20,10 +21,13 @@ const VOLUME_STEP = 0.05;
  */
 export default function SettingsScreen() {
   const router = useRouter();
+  const styles = useStyles();
   const repeatMode = useSettingsStore((s) => s.repeatMode);
   const shuffle = useSettingsStore((s) => s.shuffle);
+  const theme = useSettingsStore((s) => s.theme);
   const cycleRepeatMode = useSettingsStore((s) => s.cycleRepeatMode);
   const toggleShuffle = useSettingsStore((s) => s.toggleShuffle);
+  const cycleTheme = useSettingsStore((s) => s.cycleTheme);
   const volume = usePlayerStore((s) => s.volume);
   const adjustVolume = usePlayerStore((s) => s.adjustVolume);
   const { tracks, scanStatus, scanProgress, scanError, scanStats, scan } = useMediaLibrary();
@@ -42,6 +46,7 @@ export default function SettingsScreen() {
         ? `转动滚轮调节 ${Math.round(volume * 100)}%`
         : `${Math.round(volume * 100)}%`,
     },
+    { id: 'theme', label: '界面风格', sublabel: THEME_LABELS[theme] },
     {
       id: 'rescan',
       label: '重新扫描曲库',
@@ -69,6 +74,10 @@ export default function SettingsScreen() {
         case 'volume':
           // 中键进入音量调节态；之后滚轮才调音量，松手自动退出
           setVolumeAdjusting(true);
+          break;
+        case 'theme':
+          // 中键循环切换界面风格：深色背光 ↔ 经典银色
+          cycleTheme();
           break;
         case 'rescan':
           void scan();
@@ -153,31 +162,33 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  status: {
-    color: colors.lcd.textMuted,
-    fontFamily: fonts.lcd,
-    fontSize: 14,
-    paddingTop: 6,
-  },
-  about: {
-    gap: 4,
-    paddingVertical: 8,
-  },
-  aboutTitle: {
-    color: colors.lcd.text,
-    fontFamily: fonts.lcd,
-    fontSize: 24,
-  },
-  aboutLine: {
-    color: colors.lcd.textSecondary,
-    fontFamily: fonts.lcd,
-    fontSize: 18,
-  },
-  aboutHint: {
-    color: colors.lcd.textMuted,
-    fontFamily: fonts.lcd,
-    fontSize: 14,
-    marginTop: 6,
-  },
-});
+const useStyles = makeThemedStyles((colors) =>
+  StyleSheet.create({
+    status: {
+      color: colors.lcd.textMuted,
+      fontFamily: fonts.lcd,
+      fontSize: 14,
+      paddingTop: 6,
+    },
+    about: {
+      gap: 4,
+      paddingVertical: 8,
+    },
+    aboutTitle: {
+      color: colors.lcd.text,
+      fontFamily: fonts.lcd,
+      fontSize: 24,
+    },
+    aboutLine: {
+      color: colors.lcd.textSecondary,
+      fontFamily: fonts.lcd,
+      fontSize: 18,
+    },
+    aboutHint: {
+      color: colors.lcd.textMuted,
+      fontFamily: fonts.lcd,
+      fontSize: 14,
+      marginTop: 6,
+    },
+  }),
+);

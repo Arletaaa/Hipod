@@ -51,6 +51,7 @@ export default function HomeScreen() {
   return (
     <IpodShell
       lcdTitle="iPod"
+      showAlbumArt
       wheel={{
         onMenu: () => console.log('[wheel] MENU → 已在主菜单'),
         onPrev: () => move(-1),
@@ -60,7 +61,7 @@ export default function HomeScreen() {
         onSelect: enter,
       }}
     >
-      <MenuList items={MENU_ITEMS} selectedIndex={selected} rowHeight={40} />
+      <MenuList items={MENU_ITEMS} selectedIndex={selected} rowHeight={48} />
     </IpodShell>
   );
 }

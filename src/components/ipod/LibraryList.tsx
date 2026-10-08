@@ -3,8 +3,8 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { MenuList, type MenuListItem } from '@/components/ipod/MenuList';
 import { useMediaLibrary } from '@/hooks/useMediaLibrary';
-import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
+import { makeThemedStyles } from '@/theme/themedStyles';
 
 export interface LibraryListProps {
   items: MenuListItem[];
@@ -27,6 +27,7 @@ export function LibraryList({
   maxHeight,
 }: LibraryListProps) {
   const { scanStatus, scanError, scanStats } = useMediaLibrary();
+  const styles = useStyles();
 
   if (scanStatus === 'error') {
     return <Placeholder>{scanError ?? '扫描失败'}</Placeholder>;
@@ -59,26 +60,29 @@ export function LibraryList({
 }
 
 function Placeholder({ children }: { children: ReactNode }) {
+  const styles = useStyles();
   return <Text style={styles.placeholder}>{children}</Text>;
 }
 
-const styles = StyleSheet.create({
-  emptyBox: {
-    alignItems: 'center',
-    paddingVertical: 16,
-    gap: 6,
-  },
-  placeholder: {
-    color: colors.lcd.textSecondary,
-    fontFamily: fonts.lcd,
-    fontSize: 20,
-    textAlign: 'center',
-  },
-  hint: {
-    color: colors.lcd.textMuted,
-    fontFamily: fonts.lcd,
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-});
+const useStyles = makeThemedStyles((colors) =>
+  StyleSheet.create({
+    emptyBox: {
+      alignItems: 'center',
+      paddingVertical: 16,
+      gap: 6,
+    },
+    placeholder: {
+      color: colors.lcd.textSecondary,
+      fontFamily: fonts.lcd,
+      fontSize: 20,
+      textAlign: 'center',
+    },
+    hint: {
+      color: colors.lcd.textMuted,
+      fontFamily: fonts.lcd,
+      fontSize: 13,
+      textAlign: 'center',
+      lineHeight: 18,
+    },
+  }),
+);

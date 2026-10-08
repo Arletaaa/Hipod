@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { PersistedSession } from '@/store/player';
+import { isThemeName, type ThemeName } from '@/theme/palettes';
 import type { RepeatMode, Track } from '@/types/track';
 
 const SETTINGS_KEY = 'ipod-player:settings:v1';
@@ -9,6 +10,7 @@ const SESSION_KEY = 'ipod-player:session:v1';
 export interface PersistedSettings {
   repeatMode: RepeatMode;
   shuffle: boolean;
+  theme: ThemeName;
 }
 
 const REPEAT_MODES: RepeatMode[] = ['off', 'one', 'all'];
@@ -44,6 +46,8 @@ export async function loadSettings(): Promise<PersistedSettings | null> {
     return {
       repeatMode: isRepeatMode(data.repeatMode) ? data.repeatMode : 'off',
       shuffle: data.shuffle === true,
+      // 旧版本设置里没有 theme 字段：默认给「经典银色」（浅色）风格
+      theme: isThemeName(data.theme) ? data.theme : 'light',
     };
   } catch {
     return null;

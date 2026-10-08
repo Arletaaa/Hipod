@@ -3,8 +3,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { WheelSurface } from '@/components/ipod/Gradients';
-import { colors } from '@/theme/colors';
+import { useThemeName } from '@/hooks/useTheme';
 import { fonts } from '@/theme/fonts';
+import { PALETTES, type Palette, type ThemeName } from '@/theme/palettes';
 
 export interface ClickWheelProps {
   onMenu?: () => void;
@@ -51,6 +52,7 @@ export function ClickWheel({
 
   const angleRef = useRef(0);
   const accumRef = useRef(0);
+  const styles = STYLES_BY_THEME[useThemeName()];
 
   const emit = useCallback((dir: number) => {
     onRotateRef.current?.(dir);
@@ -135,64 +137,73 @@ export function ClickWheel({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    width: SIZE,
-    height: SIZE,
-  },
-  wheel: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: SIZE / 2,
-    // 底色仅作渐变兜底；WheelSurface 铺满其上
-    backgroundColor: colors.body.wheel2,
-    borderWidth: 1,
-    borderColor: '#000',
-    overflow: 'hidden',
-  },
-  center: {
-    position: 'absolute',
-    left: RADIUS - CENTER / 2,
-    top: RADIUS - CENTER / 2,
-    width: CENTER,
-    height: CENTER,
-    borderRadius: CENTER / 2,
-    backgroundColor: colors.body.wheel3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  centerInner: {
-    width: CENTER - 22,
-    height: CENTER - 22,
-    borderRadius: (CENTER - 22) / 2,
-    backgroundColor: colors.body.wheel1,
-  },
-  dir: {
-    position: 'absolute',
-    width: DIR,
-    height: DIR,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dirTop: { top: 8, left: RADIUS - DIR / 2 },
-  dirBottom: { bottom: 8, left: RADIUS - DIR / 2 },
-  dirLeft: { left: 8, top: RADIUS - DIR / 2 },
-  dirRight: { right: 8, top: RADIUS - DIR / 2 },
-  menuLabel: {
-    color: colors.lcd.textSecondary,
-    fontFamily: fonts.key,
-    fontSize: 13,
-    letterSpacing: 2,
-  },
-  iconLabel: {
-    color: colors.lcd.textSecondary,
-    fontSize: 20,
-  },
-  pressed: {
-    opacity: 0.55,
-    transform: [{ scale: 0.94 }],
-  },
-});
+const makeStyles = (palette: Palette) =>
+  StyleSheet.create({
+    container: {
+      width: SIZE,
+      height: SIZE,
+    },
+    wheel: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: SIZE / 2,
+      // 底色仅作渐变兜底；WheelSurface 铺满其上
+      backgroundColor: palette.body.wheel2,
+      borderWidth: 1,
+      borderColor: palette.body.wheelBorder,
+      overflow: 'hidden',
+    },
+    center: {
+      position: 'absolute',
+      left: RADIUS - CENTER / 2,
+      top: RADIUS - CENTER / 2,
+      width: CENTER,
+      height: CENTER,
+      borderRadius: CENTER / 2,
+      backgroundColor: palette.body.wheelCenter,
+      borderWidth: 1,
+      borderColor: palette.body.wheelBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    centerInner: {
+      width: CENTER - 22,
+      height: CENTER - 22,
+      borderRadius: (CENTER - 22) / 2,
+      backgroundColor: palette.body.wheelCenterInner,
+    },
+    dir: {
+      position: 'absolute',
+      width: DIR,
+      height: DIR,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dirTop: { top: 8, left: RADIUS - DIR / 2 },
+    dirBottom: { bottom: 8, left: RADIUS - DIR / 2 },
+    dirLeft: { left: 8, top: RADIUS - DIR / 2 },
+    dirRight: { right: 8, top: RADIUS - DIR / 2 },
+    menuLabel: {
+      color: palette.body.wheelIcon,
+      fontFamily: fonts.key,
+      fontSize: 13,
+      letterSpacing: 2,
+    },
+    iconLabel: {
+      color: palette.body.wheelIcon,
+      fontSize: 20,
+    },
+    pressed: {
+      opacity: 0.55,
+      transform: [{ scale: 0.94 }],
+    },
+  });
+
+/** 预生成两套主题样式，切换主题时零成本取用。 */
+const STYLES_BY_THEME: Record<ThemeName, ReturnType<typeof makeStyles>> = {
+  dark: makeStyles(PALETTES.dark),
+  light: makeStyles(PALETTES.light),
+};

@@ -6,8 +6,8 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { IpodShell } from '@/components/ipod/IpodShell';
 import { useMediaLibrary } from '@/hooks/useMediaLibrary';
 import { SCAN_DIRECTORY_LABELS } from '@/services/filesystemScan';
-import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
+import { makeThemedStyles } from '@/theme/themedStyles';
 
 /** 滚轮每档滚动的像素数。 */
 const SCROLL_STEP = 48;
@@ -22,6 +22,7 @@ const SCROLL_STEP = 48;
 export default function DiagnosticsScreen() {
   const router = useRouter();
   const { tracks, scanStats, scanStatus, scanError, scan } = useMediaLibrary();
+  const styles = useStyles();
 
   const [permission, setPermission] = useState<string>('检查中…');
   const scrollRef = useRef<ScrollView>(null);
@@ -113,32 +114,34 @@ function shorten(value: string): string {
   return value.replace('file:///storage/emulated/0', '内部存储');
 }
 
-const styles = StyleSheet.create({
-  scroll: {
-    maxHeight: 260,
-  },
-  line: {
-    color: colors.lcd.textSecondary,
-    fontFamily: fonts.lcd,
-    fontSize: 16,
-    lineHeight: 21,
-  },
-  error: {
-    color: colors.lcd.textMuted,
-    fontFamily: fonts.lcd,
-    fontSize: 14,
-    lineHeight: 19,
-  },
-  section: {
-    color: colors.lcd.text,
-    fontFamily: fonts.lcd,
-    fontSize: 18,
-    marginTop: 8,
-  },
-  hint: {
-    color: colors.lcd.textMuted,
-    fontFamily: fonts.lcd,
-    fontSize: 12,
-    marginTop: 10,
-  },
-});
+const useStyles = makeThemedStyles((colors) =>
+  StyleSheet.create({
+    scroll: {
+      maxHeight: 260,
+    },
+    line: {
+      color: colors.lcd.textSecondary,
+      fontFamily: fonts.lcd,
+      fontSize: 16,
+      lineHeight: 21,
+    },
+    error: {
+      color: colors.lcd.textMuted,
+      fontFamily: fonts.lcd,
+      fontSize: 14,
+      lineHeight: 19,
+    },
+    section: {
+      color: colors.lcd.text,
+      fontFamily: fonts.lcd,
+      fontSize: 18,
+      marginTop: 8,
+    },
+    hint: {
+      color: colors.lcd.textMuted,
+      fontFamily: fonts.lcd,
+      fontSize: 12,
+      marginTop: 10,
+    },
+  }),
+);

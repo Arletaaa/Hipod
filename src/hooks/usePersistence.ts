@@ -35,8 +35,18 @@ export function usePersistence() {
   // 设置：变化即存
   useEffect(() => {
     return useSettingsStore.subscribe((state, prev) => {
-      if (state.repeatMode === prev.repeatMode && state.shuffle === prev.shuffle) return;
-      void saveSettings({ repeatMode: state.repeatMode, shuffle: state.shuffle });
+      if (
+        state.repeatMode === prev.repeatMode &&
+        state.shuffle === prev.shuffle &&
+        state.theme === prev.theme
+      ) {
+        return;
+      }
+      void saveSettings({
+        repeatMode: state.repeatMode,
+        shuffle: state.shuffle,
+        theme: state.theme,
+      });
     });
   }, []);
 

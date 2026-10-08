@@ -6,8 +6,8 @@ import { StyleSheet, Text, View, type DimensionValue } from 'react-native';
 import { IpodShell } from '@/components/ipod/IpodShell';
 import { resolveArtwork } from '@/services/artwork';
 import { usePlayerStore } from '@/store/player';
-import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
+import { makeThemedStyles } from '@/theme/themedStyles';
 import { formatTime } from '@/utils/format';
 
 /** 滚轮每档（30°）对应的 seek 秒数（进度模式）。 */
@@ -25,6 +25,7 @@ const MODE_ORDER: LcdMode[] = ['progress', 'volume'];
 
 export default function PlayerScreen() {
   const router = useRouter();
+  const styles = useStyles();
 
   const track = usePlayerStore((s) => s.queue[s.currentIndex] ?? null);
   const queueLength = usePlayerStore((s) => s.queue.length);
@@ -156,11 +157,12 @@ export default function PlayerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  nowPlaying: {
-    alignItems: 'center',
-    gap: 6,
-  },
+const useStyles = makeThemedStyles((colors) =>
+  StyleSheet.create({
+    nowPlaying: {
+      alignItems: 'center',
+      gap: 6,
+    },
   artworkBox: {
     width: 96,
     height: 96,
@@ -254,11 +256,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     maxWidth: '100%',
   },
-  empty: {
-    color: colors.lcd.textSecondary,
-    fontFamily: fonts.lcd,
-    fontSize: 20,
-    paddingVertical: 24,
-    textAlign: 'center',
-  },
-});
+    empty: {
+      color: colors.lcd.textSecondary,
+      fontFamily: fonts.lcd,
+      fontSize: 20,
+      paddingVertical: 24,
+      textAlign: 'center',
+    },
+  }),
+);

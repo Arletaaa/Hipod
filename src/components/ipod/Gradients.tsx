@@ -8,22 +8,24 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
-import { colors } from '@/theme/colors';
+import { usePalette } from '@/hooks/useTheme';
 
 /**
  * iPod 视觉质感的渐变底面（§5.1）。
  * 全部为绝对定位铺满父容器，调用方只需保证父容器有 overflow: hidden（裁圆角）。
+ * 颜色取自当前主题调色板，深/浅两套风格共用同一批组件。
  */
 
-/** LCD 径向背光：#1a3a5f 中心 → #0d2340 → #071426 边缘。 */
+/** LCD 背光径向渐变：中心偏亮 → 边缘偏暗。 */
 export function LcdBacklight() {
+  const palette = usePalette();
   return (
     <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
       <Defs>
         <RadialGradient id="lcdBacklight" cx="50%" cy="42%" r="82%">
-          <Stop offset="0%" stopColor={colors.lcd.bg3} />
-          <Stop offset="55%" stopColor={colors.lcd.bg2} />
-          <Stop offset="100%" stopColor={colors.lcd.bg1} />
+          <Stop offset="0%" stopColor={palette.lcd.bg3} />
+          <Stop offset="55%" stopColor={palette.lcd.bg2} />
+          <Stop offset="100%" stopColor={palette.lcd.bg1} />
         </RadialGradient>
       </Defs>
       <Rect x="0" y="0" width="100%" height="100%" fill="url(#lcdBacklight)" />
@@ -31,13 +33,14 @@ export function LcdBacklight() {
   );
 }
 
-/** LCD 扫描线纹理：每 4px 一条极淡亮线，营造像素屏质感。 */
+/** LCD 扫描线纹理：每 4px 一条极淡细线，营造像素屏质感。 */
 export function Scanlines({ opacity = 0.05 }: { opacity?: number }) {
+  const palette = usePalette();
   return (
     <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
       <Defs>
         <Pattern id="lcdScanlines" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
-          <Rect x="0" y="0" width="4" height="1" fill={colors.lcd.text} opacity={opacity} />
+          <Rect x="0" y="0" width="4" height="1" fill={palette.lcd.text} opacity={opacity} />
         </Pattern>
       </Defs>
       <Rect x="0" y="0" width="100%" height="100%" fill="url(#lcdScanlines)" />
@@ -45,15 +48,16 @@ export function Scanlines({ opacity = 0.05 }: { opacity?: number }) {
   );
 }
 
-/** 金属机身竖向渐变：#2c2c32 → #17171b → #0f0f13。 */
+/** 机身竖向渐变（深色 = 黑色金属 / 浅色 = 银色）。 */
 export function MetalBody() {
+  const palette = usePalette();
   return (
     <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
       <Defs>
         <LinearGradient id="metalBody" x1="0%" y1="0%" x2="0%" y2="100%">
-          <Stop offset="0%" stopColor={colors.body.metal1} />
-          <Stop offset="42%" stopColor={colors.body.metal2} />
-          <Stop offset="100%" stopColor={colors.body.metal3} />
+          <Stop offset="0%" stopColor={palette.body.metal1} />
+          <Stop offset="42%" stopColor={palette.body.metal2} />
+          <Stop offset="100%" stopColor={palette.body.metal3} />
         </LinearGradient>
       </Defs>
       <Rect x="0" y="0" width="100%" height="100%" fill="url(#metalBody)" />
@@ -61,15 +65,17 @@ export function MetalBody() {
   );
 }
 
-/** 页面背景蓝光晕（§5.1：背景 + 蓝光晕）。 */
+/** 页面背景光晕（§5.1：背景 + 光晕）。 */
 export function BackdropGlow() {
+  const palette = usePalette();
+  const glow = palette.backdrop.glowOpacity;
   return (
     <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
       <Defs>
         <RadialGradient id="backdropGlow" cx="50%" cy="28%" r="72%">
-          <Stop offset="0%" stopColor="#1a3a5f" stopOpacity={0.55} />
-          <Stop offset="60%" stopColor="#0d2340" stopOpacity={0.18} />
-          <Stop offset="100%" stopColor={colors.body.background} stopOpacity={0} />
+          <Stop offset="0%" stopColor={palette.backdrop.glow} stopOpacity={glow} />
+          <Stop offset="60%" stopColor={palette.backdrop.glow} stopOpacity={glow * 0.3} />
+          <Stop offset="100%" stopColor={palette.body.background} stopOpacity={0} />
         </RadialGradient>
       </Defs>
       <Rect x="0" y="0" width="100%" height="100%" fill="url(#backdropGlow)" />
@@ -77,15 +83,16 @@ export function BackdropGlow() {
   );
 }
 
-/** 点击轮表面径向渐变（偏上高光）：#26262b → #141419 → #0d0d11。 */
+/** 点击轮表面径向渐变（偏上高光）。 */
 export function WheelSurface() {
+  const palette = usePalette();
   return (
     <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
       <Defs>
         <RadialGradient id="wheelSurface" cx="50%" cy="32%" r="78%">
-          <Stop offset="0%" stopColor={colors.body.wheel1} />
-          <Stop offset="58%" stopColor={colors.body.wheel2} />
-          <Stop offset="100%" stopColor={colors.body.wheel3} />
+          <Stop offset="0%" stopColor={palette.body.wheel1} />
+          <Stop offset="58%" stopColor={palette.body.wheel2} />
+          <Stop offset="100%" stopColor={palette.body.wheel3} />
         </RadialGradient>
       </Defs>
       <Rect x="0" y="0" width="100%" height="100%" fill="url(#wheelSurface)" />
