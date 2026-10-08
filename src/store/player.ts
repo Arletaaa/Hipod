@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { useSettingsStore } from '@/store/settings';
 import type { Track } from '@/types/track';
+import { clampVolume } from '@/utils/volume';
 
 /** 播放器状态里，由 provider 从 native 回填的字段（秒为单位）。 */
 export interface PlayerStatus {
@@ -55,12 +56,6 @@ const INITIAL_STATUS: PlayerStatus = {
   isLoaded: false,
   isBuffering: false,
 };
-
-/** 音量统一保留两位小数，避免浮点噪声写进持久化。 */
-function clampVolume(value: number): number {
-  if (!Number.isFinite(value)) return 1;
-  return Math.round(Math.max(0, Math.min(1, value)) * 100) / 100;
-}
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   queue: [],

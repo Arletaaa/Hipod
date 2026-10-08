@@ -5,6 +5,13 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { WheelSurface } from '@/components/ipod/Gradients';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
+import {
+  advanceInertia,
+  isInertiaFinished,
+  normalizeVelocity,
+  type InertiaConfig,
+  type InertiaState,
+} from '@/utils/inertia';
 
 export interface ClickWheelProps {
   onMenu?: () => void;
@@ -32,6 +39,9 @@ const INERTIA_START_VELOCITY = 4;
 const INERTIA_TICK_MS = 60;
 /** 每个惯性 tick 的速度衰减系数。 */
 const INERTIA_DECAY = 0.78;
+
+/** 惯性推进配置（与上面常量保持一致，供纯函数使用）。 */
+const INERTIA_CONFIG: InertiaConfig = { tickMs: INERTIA_TICK_MS, decay: INERTIA_DECAY };
 
 interface StepMark {
   t: number;
@@ -84,30 +94,21 @@ export function ClickWheel({
 
   /**
    * 松手后按速度继续滚动。
-   * 顺序很关键：先累积位移并结算档位，再衰减、最后判断收尾——
-   * 若先衰减再结算，刚过阈值的速度会被判定为「低于阈值」而一档都不出（静默死区）。
+   * 位移结算与收尾判断都在 utils/inertia 的纯函数里（可无设备验证）：
+   * 必须「先结算、后衰减」，否则刚过阈值的速度会一档都不出。
    */
   const startInertia = useCallback(
     (velocity: number) => {
       stopInertia();
-      let v = velocity;
-      let carry = 0;
+      let state: InertiaState = { velocity, carry: 0 };
       inertiaRef.current = setInterval(() => {
-        carry += v * (INERTIA_TICK_MS / 1000);
-        while (carry >= 1) {
-          carry -= 1;
-          emit(1);
+        const result = advanceInertia(state, INERTIA_CONFIG);
+        state = result.state;
+        const direction = result.emit > 0 ? 1 : -1;
+        for (let i = 0; i < Math.abs(result.emit); i += 1) {
+          emit(direction);
         }
-        while (carry <= -1) {
-          carry += 1;
-          emit(-1);
-        }
-        v *= INERTIA_DECAY;
-        // 收尾判据：剩余位移（未结算的 carry + 后续衰减可累积的距离）不足一档时停止，
-        // 这样不会因为「速度已低于阈值」而丢掉尾部还能走的那一格。
-        const remaining =
-          Math.abs(carry) + (Math.abs(v) * (INERTIA_TICK_MS / 1000)) / (1 - INERTIA_DECAY);
-        if (remaining < 1) {
+        if (isInertiaFinished(state, INERTIA_CONFIG)) {
           stopInertia();
         }
       }, INERTIA_TICK_MS);
@@ -149,10 +150,8 @@ export function ClickWheel({
           const marks = marksRef.current.filter((m) => now - m.t <= VELOCITY_WINDOW_MS);
           if (marks.length === 0) return;
           const first = marks[0]!;
-          // 用真实时间跨度归一化，且设下限，避免跨度极小导致速度虚高
-          const span = Math.max(VELOCITY_MIN_SPAN_MS, now - first.t);
           const signedSum = marks.reduce((acc, m) => acc + m.dir, 0);
-          const velocity = signedSum / (span / 1000);
+          const velocity = normalizeVelocity(signedSum, now - first.t, VELOCITY_MIN_SPAN_MS);
           if (Math.abs(velocity) >= INERTIA_START_VELOCITY) {
             startInertia(velocity);
           }
