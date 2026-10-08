@@ -100,6 +100,32 @@ python scripts/generate-textures.py    # 输出到 assets/textures/
 > ⚠️ 为什么不直接写 SVG 噪点：`react-native-svg` 15 在 Android 上**未实现 `feTurbulence`**
 > （源码里直接调用 `warnUnimplementedFilter()`），程序化颗粒/拉丝只能用可平铺位图实现。
 
+## 字体（中文像素字体）
+
+LCD 文本统一使用 **GNU Unifont**（`assets/fonts/unifont-pixel.ttf`，OFL-1.1）：
+
+- 它是少数**同时具备像素观感与完整中日韩覆盖**的字体（cmap 5.7 万码位），
+  中文不会回退到系统字体 —— 一旦回退，像素风立刻被破坏
+- 12MB（Unifont 把点阵存成轮廓，体积偏大）；如需瘦身可用 `pyftsubset` 做子集，
+  或直接换成更精致的 Fusion Pixel / Zpix（见下）
+
+重新生成：
+
+```bash
+npm i --no-save --cache .npm-cache @fontsource/unifont wawoff2
+node scripts/make-pixel-font.mjs      # woff2 → TTF（RN 不支持 woff2）
+```
+
+**换成别的手写像素字体**（例如 [Fusion Pixel 缝合像素字体](https://github.com/TakWolf/fusion-pixel-font)、
+[Zpix 最像素](https://github.com/SolidZORO/zpix-pixel-font)）：把单个 `.ttf` 放进
+`assets/fonts/`，然后改两处 —— `src/app/_layout.tsx` 的 `useFonts` 键名、以及
+`src/theme/fonts.ts` 里的 `lcd`（想只让拉丁用 VT323 就把它换回 `lcdLatin`）。
+
+> 为什么不用 VT323 直接显示中文：VT323 只覆盖拉丁，中文会掉到系统字体；
+> Google Fonts 也没有简体中文像素字体（实测 CSS API 返回 400），
+> 而 Fontsource 的 Fusion Pixel 包只带 latin 子集、泛 CJK 包是按 unicode-range
+> 拆分的 woff2（RN 无法按 unicode-range 回退）。
+
 ## 点击轮操作映射
 
 | 操作 | 作用 |

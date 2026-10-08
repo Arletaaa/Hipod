@@ -19,8 +19,8 @@ export interface IpodShellProps {
   wheel?: ClickWheelProps;
 }
 
-/** 机身圆角（外框）；电子框外圆角 = 机身圆角 − 内边距，保证同心。 */
-const BODY_RADIUS = 30;
+/** 机身圆角（外框）：只保留很小的圆角，与黑电子框同心。 */
+const BODY_RADIUS = 8;
 /** 机身内边距：0 = 黑电子框直接贴到设备外沿，不再有金属留白。 */
 const BODY_PADDING = 0;
 

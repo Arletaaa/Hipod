@@ -16,13 +16,11 @@ export interface LcdScreenProps {
 }
 
 /**
- * 黑电子框宽度。取 12dp：把原先那 2dp 金属留白并入黑框，
- * 使黑框成为设备最外层（参考图里浅色面板 + 黑框的总占比 ≈ 3.1% 屏宽，
- * 本机机身宽 372dp，12dp ≈ 3.2%，与之接近）。
+ * 黑电子框宽度：6dp（按反馈从 12dp 收窄）。
  */
-const BEZEL_PADDING = 12;
-/** 电子框外圆角：与机身圆角同心（机身边距为 0，故两者相同）。 */
-const BEZEL_RADIUS = 30;
+const BEZEL_PADDING = 6;
+/** 电子框外圆角：只留一点点圆角（与机身圆角同心）。 */
+const BEZEL_RADIUS = 8;
 
 /**
  * 复古 LCD：**黑色电子框**包住屏面。
