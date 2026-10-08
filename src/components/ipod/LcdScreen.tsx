@@ -17,6 +17,8 @@ export interface LcdScreenProps {
 
 /** 黑电子框宽度（加宽后的值）。 */
 const BEZEL_PADDING = 10;
+/** 电子框外圆角：与机身圆角（30）减去机身边距（2）同心。 */
+const BEZEL_RADIUS = 28;
 
 /**
  * 复古 LCD：**黑色电子框**包住屏面。
@@ -67,13 +69,19 @@ export function LcdScreen({ title = 'iPod', statusIcon = '▶', children }: LcdS
 
 function makeStyles(palette: Palette) {
   return StyleSheet.create({
-    /** 黑电子框：外框圆角 + 加宽的黑边。 */
+    /** 黑电子框：外圆角与机身同心 + 加宽的黑边 + 向金属面投下的柔和过渡阴影。 */
     bezel: {
       flex: 1,
       backgroundColor: palette.material.bezel,
-      borderRadius: 20,
+      borderRadius: BEZEL_RADIUS,
       padding: BEZEL_PADDING,
       overflow: 'hidden',
+      // 让黑玻璃面板看起来嵌进金属面（交界处不再是硬边）
+      shadowColor: '#000000',
+      shadowOpacity: 0.45,
+      shadowRadius: 9,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 8,
     },
     bezelLip: {
       position: 'absolute',
@@ -81,7 +89,7 @@ function makeStyles(palette: Palette) {
       right: BEZEL_PADDING - 2,
       top: BEZEL_PADDING - 2,
       bottom: BEZEL_PADDING - 2,
-      borderRadius: 13,
+      borderRadius: 17,
       borderWidth: 1,
       borderColor: palette.material.bezelLip,
     },

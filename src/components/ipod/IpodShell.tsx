@@ -19,8 +19,10 @@ export interface IpodShellProps {
   wheel?: ClickWheelProps;
 }
 
-/** 机身圆角（外框）；电子框外圆角在其内部由 LcdScreen 自己控制。 */
+/** 机身圆角（外框）；电子框外圆角 = 机身圆角 − 内边距，保证同心。 */
 const BODY_RADIUS = 30;
+/** 机身内边距：黑电子框几乎贴到机身边缘，只留一圈细金属倒角。 */
+const BODY_PADDING = 2;
 
 /**
  * iPod 外壳：上半屏黑电子框屏幕 + 下半屏硅胶点击轮，整体为阳极氧化铝机身。
@@ -43,15 +45,18 @@ export function IpodShell({
       <BackdropGlow />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.lcdSlot}>
-          <View style={styles.body}>
-            <MetalBody />
-            <BrushedLayer />
-            <BevelEdges radius={BODY_RADIUS} />
-            <NoiseLayer opacity={0.5} />
-            {/* 黑电子框直接落在金属上（原先还有一圈灰色内凹槽，视觉上像多了一层边框，已移除） */}
-            <LcdScreen title={lcdTitle} statusIcon={lcdStatusIcon}>
-              {children}
-            </LcdScreen>
+          {/* 外层只负责柔和投影（设备与页面背景之间靠阴影过渡，不用硬描边） */}
+          <View style={styles.bodyShadow}>
+            <View style={styles.body}>
+              <MetalBody />
+              <BrushedLayer />
+              <BevelEdges radius={BODY_RADIUS} />
+              <NoiseLayer opacity={0.5} />
+              {/* 黑电子框直接落在金属上，四周仅留细金属倒角 */}
+              <LcdScreen title={lcdTitle} statusIcon={lcdStatusIcon}>
+                {children}
+              </LcdScreen>
+            </View>
           </View>
         </View>
 
@@ -86,16 +91,27 @@ function makeStyles(palette: Palette) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    /** 投影层：让机身从页面背景上"浮起"，形成柔和过渡。 */
+    bodyShadow: {
+      width: '100%',
+      maxWidth: 372 + BODY_PADDING * 2,
+      flex: 1,
+      borderRadius: BODY_RADIUS,
+      backgroundColor: palette.body.metal2,
+      shadowColor: '#000000',
+      shadowOpacity: 0.38,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 12,
+    },
     /** 阳极氧化铝机身。 */
     body: {
       width: '100%',
-      maxWidth: 372,
       flex: 1,
       backgroundColor: palette.body.metal2,
       borderRadius: BODY_RADIUS,
-      borderWidth: 1,
-      borderColor: palette.body.frameBorder,
-      padding: 12,
+      // 细金属倒角：黑电子框几乎贴边
+      padding: BODY_PADDING,
       overflow: 'hidden',
     },
   });
