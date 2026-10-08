@@ -15,10 +15,14 @@ export interface LcdScreenProps {
   children?: ReactNode;
 }
 
-/** 黑电子框宽度（加宽后的值）。 */
-const BEZEL_PADDING = 10;
-/** 电子框外圆角：与机身圆角（30）减去机身边距（2）同心。 */
-const BEZEL_RADIUS = 28;
+/**
+ * 黑电子框宽度。取 12dp：把原先那 2dp 金属留白并入黑框，
+ * 使黑框成为设备最外层（参考图里浅色面板 + 黑框的总占比 ≈ 3.1% 屏宽，
+ * 本机机身宽 372dp，12dp ≈ 3.2%，与之接近）。
+ */
+const BEZEL_PADDING = 12;
+/** 电子框外圆角：与机身圆角同心（机身边距为 0，故两者相同）。 */
+const BEZEL_RADIUS = 30;
 
 /**
  * 复古 LCD：**黑色电子框**包住屏面。
@@ -89,7 +93,7 @@ function makeStyles(palette: Palette) {
       right: BEZEL_PADDING - 2,
       top: BEZEL_PADDING - 2,
       bottom: BEZEL_PADDING - 2,
-      borderRadius: 17,
+      borderRadius: 19,
       borderWidth: 1,
       borderColor: palette.material.bezelLip,
     },

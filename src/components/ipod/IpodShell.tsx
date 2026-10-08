@@ -21,8 +21,8 @@ export interface IpodShellProps {
 
 /** 机身圆角（外框）；电子框外圆角 = 机身圆角 − 内边距，保证同心。 */
 const BODY_RADIUS = 30;
-/** 机身内边距：黑电子框几乎贴到机身边缘，只留一圈细金属倒角。 */
-const BODY_PADDING = 2;
+/** 机身内边距：0 = 黑电子框直接贴到设备外沿，不再有金属留白。 */
+const BODY_PADDING = 0;
 
 /**
  * iPod 外壳：上半屏黑电子框屏幕 + 下半屏硅胶点击轮，整体为阳极氧化铝机身。
