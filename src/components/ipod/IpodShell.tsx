@@ -48,11 +48,10 @@ export function IpodShell({
             <BrushedLayer />
             <BevelEdges radius={BODY_RADIUS} />
             <NoiseLayer opacity={0.5} />
-            <View style={styles.screenRecess}>
-              <LcdScreen title={lcdTitle} statusIcon={lcdStatusIcon}>
-                {children}
-              </LcdScreen>
-            </View>
+            {/* 黑电子框直接落在金属上（原先还有一圈灰色内凹槽，视觉上像多了一层边框，已移除） */}
+            <LcdScreen title={lcdTitle} statusIcon={lcdStatusIcon}>
+              {children}
+            </LcdScreen>
           </View>
         </View>
 
@@ -98,13 +97,6 @@ function makeStyles(palette: Palette) {
       borderColor: palette.body.frameBorder,
       padding: 12,
       overflow: 'hidden',
-    },
-    /** 机身内凹槽：让黑电子框像嵌进金属里。 */
-    screenRecess: {
-      flex: 1,
-      borderRadius: 22,
-      padding: 2,
-      backgroundColor: palette.material.siliconeShade,
     },
   });
 }

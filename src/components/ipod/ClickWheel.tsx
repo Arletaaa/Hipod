@@ -3,7 +3,7 @@ import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { WheelSurface } from '@/components/ipod/Gradients';
-import { BevelEdges, NoiseLayer, TEXTURES } from '@/components/ipod/Materials';
+import { NoiseLayer, TEXTURES } from '@/components/ipod/Materials';
 import { usePalette } from '@/hooks/useTheme';
 import { fonts } from '@/theme/fonts';
 import type { Palette } from '@/theme/palettes';
@@ -126,7 +126,6 @@ export function ClickWheel({
             style={[styles.grain, { transform: [{ rotate: grainRotate }] }]}
           />
           <NoiseLayer opacity={0.4} />
-          <BevelEdges radius={RADIUS} />
         </View>
       </GestureDetector>
 
@@ -139,7 +138,6 @@ export function ClickWheel({
           <View style={styles.centerGrain} pointerEvents="none">
             <Image source={TEXTURES.siliconeGrain} resizeMode="repeat" style={styles.grainFill} />
           </View>
-          <BevelEdges radius={(CENTER - 22) / 2} />
         </View>
       </Pressable>
 

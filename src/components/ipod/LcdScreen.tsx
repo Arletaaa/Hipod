@@ -15,10 +15,16 @@ export interface LcdScreenProps {
   children?: ReactNode;
 }
 
+/** 黑电子框宽度（加宽后的值）。 */
+const BEZEL_PADDING = 10;
+
 /**
  * 复古 LCD：**黑色电子框**包住屏面。
- * - 电子框：外框圆角（radius 18）、内唇高光，宽度收窄到 5px
- * - 屏面：内框接近直角（radius 3），带像素栅格、TN 偏色、暗角与玻璃反射
+ *
+ * 关键点：屏面本身**不设 padding**，背景层（背光渐变 / 像素网格 / 暗角 /
+ * 玻璃反射）才能铺满整块屏；内边距放在内部的内容容器上。
+ * （RN 中绝对定位子元素相对父容器 padding 盒定位，若屏面带 padding，
+ *   背景层会被内缩一圈，在右侧/底部露出未上色的灰带。）
  */
 export function LcdScreen({ title = 'iPod', statusIcon = '▶', children }: LcdScreenProps) {
   const palette = usePalette();
@@ -30,23 +36,30 @@ export function LcdScreen({ title = 'iPod', statusIcon = '▶', children }: LcdS
       <View style={styles.bezelLip} pointerEvents="none" />
 
       <View style={styles.screen}>
-        <LcdBacklight />
-        {/* 复古层：TN 偏色 → 像素栅格 → 暗角 → 玻璃反射 → 噪点 */}
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.material.screenCast }]} />
-        <PixelGrid />
-        <Vignette />
-        <GlassLayer opacity={0.7} />
-        <NoiseLayer opacity={0.6} />
-
-        <View style={styles.titleBar}>
-          <Text numberOfLines={1} style={styles.title}>
-            {title}
-          </Text>
-          <Text style={styles.statusIcon}>{statusIcon}</Text>
+        {/* 背景层：绝对铺满整块屏（不含 padding 内缩） */}
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <LcdBacklight />
+          <View
+            style={[StyleSheet.absoluteFill, { backgroundColor: palette.material.screenCast }]}
+          />
+          <PixelGrid />
+          <Vignette />
+          <GlassLayer opacity={0.35} />
+          <NoiseLayer opacity={0.6} />
         </View>
 
-        <View style={styles.divider} />
-        <View style={styles.content}>{children}</View>
+        {/* 内容层：内边距在这里 */}
+        <View style={styles.body}>
+          <View style={styles.titleBar}>
+            <Text numberOfLines={1} style={styles.title}>
+              {title}
+            </Text>
+            <Text style={styles.statusIcon}>{statusIcon}</Text>
+          </View>
+
+          <View style={styles.divider} />
+          <View style={styles.content}>{children}</View>
+        </View>
       </View>
     </View>
   );
@@ -54,31 +67,35 @@ export function LcdScreen({ title = 'iPod', statusIcon = '▶', children }: LcdS
 
 function makeStyles(palette: Palette) {
   return StyleSheet.create({
-    /** 黑电子框：外框圆角 + 窄边。 */
+    /** 黑电子框：外框圆角 + 加宽的黑边。 */
     bezel: {
       flex: 1,
       backgroundColor: palette.material.bezel,
-      borderRadius: 18,
-      padding: 5,
+      borderRadius: 20,
+      padding: BEZEL_PADDING,
       overflow: 'hidden',
     },
     bezelLip: {
       position: 'absolute',
-      left: 3,
-      right: 3,
-      top: 3,
-      bottom: 3,
-      borderRadius: 15,
+      left: BEZEL_PADDING - 2,
+      right: BEZEL_PADDING - 2,
+      top: BEZEL_PADDING - 2,
+      bottom: BEZEL_PADDING - 2,
+      borderRadius: 13,
       borderWidth: 1,
       borderColor: palette.material.bezelLip,
     },
-    /** 屏面：内框近直角，填满电子框内部。 */
+    /** 屏面：内框近直角；**不加 padding**，保证背景层铺满。 */
     screen: {
       flex: 1,
       backgroundColor: palette.lcd.bg1,
       borderRadius: 3,
-      padding: 10,
       overflow: 'hidden',
+    },
+    /** 内容层：标题栏与内容的内边距。 */
+    body: {
+      flex: 1,
+      padding: 10,
     },
     titleBar: {
       flexDirection: 'row',
