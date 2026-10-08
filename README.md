@@ -79,7 +79,26 @@ src/
 
 - 调色板集中在 [src/theme/palettes.ts](src/theme/palettes.ts)，组件样式用 `makeThemedStyles`
   预生成两套（[src/theme/themedStyles.ts](src/theme/themedStyles.ts)），切主题只换样式表、不重建组件树
-- 扫描线只在深色风格启用；浅色风格按参考图不带纹理
+
+## 材质系统（工业复刻方向）
+
+设计方向：**阳极氧化铝机身 + 哑光硅胶操作件 + 纯黑电子框屏幕 + 早期 TN 屏观感**。
+
+| 部位 | 做法 |
+| --- | --- |
+| 屏幕边框 | 外层**黑电子框**（外框圆角 18、宽度 5px、内唇高光），屏面**内框近直角**（radius 3） |
+| 复古屏 | TN 冷绿偏色 → 像素栅格 → 暗角 → 玻璃反射 → 细微噪点，字体用 VT323 |
+| 机身 | 阳极氧化铝竖向渐变 + 拉丝贴图 + 上下倒角高光/阴影 + 噪点；机身内凹槽让电子框嵌进金属 |
+| 点击轮 | 哑光硅胶：环面颗粒贴图**随手指转动同步旋转**；中键为凸起硅胶按键；图标微凹刻印 |
+
+材质贴图由 [scripts/generate-textures.py](scripts/generate-textures.py) **程序化生成**（Pillow，固定随机种子，可复现）：
+
+```bash
+python scripts/generate-textures.py    # 输出到 assets/textures/
+```
+
+> ⚠️ 为什么不直接写 SVG 噪点：`react-native-svg` 15 在 Android 上**未实现 `feTurbulence`**
+> （源码里直接调用 `warnUnimplementedFilter()`），程序化颗粒/拉丝只能用可平铺位图实现。
 
 ## 点击轮操作映射
 
