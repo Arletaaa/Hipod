@@ -1,70 +1,179 @@
-# iPod Player
+<div align="center">
+  <img src="docs/screenshots/00-icon.png" width="120" alt="HiPod" />
+  <h1>HiPod</h1>
+  <p><b>复古点击轮音乐播放器</b></p>
+  <p>Android 7.0+ ｜ React Native · Expo SDK 57 · TypeScript ｜ 纯本地曲库 · 运行期零网络请求</p>
+</div>
 
-复古 iPod Classic 风格的安卓本地音乐播放器：金属机身 + 蓝白背光 LCD + 实体点击轮驱动全部交互。
+---
 
-- 设计文档：[docs/design.md](docs/design.md)（信息架构、配色、手势映射、里程碑）
-- 技术栈：Expo SDK 57 · React Native 0.86 · expo-router · expo-audio · expo-media-library · @missingcore/react-native-metadata-retriever · zustand · react-native-svg
+## 这是什么
 
-## 环境要求
+一个把 **iPod Classic 的交互**搬进 Android 的本地音乐播放器：转动点击轮选歌、中键确认、MENU 返回层级、▶❚❚ 在任意界面暂停/继续；播放页按中键在「进度 ↔ 音量」之间切换调节对象。
 
-| 依赖 | 版本 / 说明 |
+外观走「**工业复刻**」方向：阳极氧化铝机身、哑光硅胶点击轮（颗粒随手指转动）、**黑色电子框**屏幕（外框圆角、内框近直角）、中文像素字体、程序化生成的真实材质贴图。
+
+曲库**完全来自本机**：MediaStore 分页读取 + 文件系统兜底扫描（补齐未被媒体库索引的文件），运行期不发任何网络请求。
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/01-home.png" width="200" /></td>
+    <td align="center"><img src="docs/screenshots/03-songs.png" width="200" /></td>
+    <td align="center"><img src="docs/screenshots/04-albums.png" width="200" /></td>
+    <td align="center"><img src="docs/screenshots/06-settings.png" width="200" /></td>
+  </tr>
+  <tr align="center">
+    <td>主菜单</td><td>歌曲</td><td>专辑</td><td>设置</td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/07-diagnostics.png" width="200" /></td>
+    <td align="center"><img src="docs/screenshots/08-wheel.png" width="200" /></td>
+    <td align="center"><img src="docs/screenshots/10-textures.png" width="200" /></td>
+    <td align="center"><img src="docs/screenshots/09-splash.png" width="200" /></td>
+  </tr>
+  <tr align="center">
+    <td>扫描诊断</td><td>硅胶点击轮特写</td><td>程序化材质贴图</td><td>开屏</td>
+  </tr>
+</table>
+
+> 截图取自**实际运行的 release 包**（arm64，脱离开发服务器），非设计稿。
+
+## ⚠️ 关于这个项目是怎么做出来的
+
+**代码 100% 由 AI 智能体编写，我没有手写任何一行代码。** 这一点我写在最前面，因为它同时是这个项目最有价值、也最容易被误解的部分。
+
+我的工作集中在人的判断上：
+
+| 我做的 | 具体内容 |
 | --- | --- |
-| Node.js | 20+ |
-| JDK | **21**（Gradle daemon 必须跑在 21，见下文「原生工程注意事项」） |
-| Android SDK | 已装 platform-tools / platform 36 / build-tools 36 / cmake / ndk |
-| 环境变量 | `ANDROID_HOME`（如 `H:\Android\Sdk`），建议把 `%ANDROID_HOME%\platform-tools` 加入 PATH 以便直接用 `adb` |
+| **需求与交互定义** | 点击轮映射（转动/中键/MENU/⏮⏭ 的语义）、两段式音量（先按中键进入调节态、松手退出，避免浏览列表时误触）、层级导航 |
+| **技术决策与取舍** | 选 Expo 原生模块而非 Expo Go、双主题零重建架构、材质方向、放弃上架改用固定密钥自签名分发 |
+| **真机验收** | 逐轮在真机上验收并描述缺陷：列表首行标题被裁、滚轮惯性手感、边框过宽、圆角过大、MENU 字太细、图标出现方形白边…… |
+| **外观方向** | 提供参考图、指定材质与配色、「黑轮盘 + 金色音符」图标设计稿，审核每轮截图 |
+| **发布与合规** | 签名密钥管理、权限最小化、字体许可（OFL）、命名规避商标风险 |
 
-> 本项目含自定义原生模块（`@missingcore/react-native-metadata-retriever` 等），**不能用 Expo Go**，必须使用 development build。
+AI 负责的是：全部代码实现、脚本工具链、构建排障（Gradle/JDK/依赖冲突）、文档。
+
+**这套协作方式本身就是可迁移的能力**：把模糊需求拆成可验收的改动、用真机数据验证"看起来对不对"、在 AI 给出"应该没问题"时坚持要证据。项目里几条最硬的工程内容（下面第 3、4、6 条）都是在这种"要求证据"的来回里逼出来的。
+
+## 功能一览
+
+- **点击轮交互**：按角度累计每 30° 触发一档，**无惯性**（松手即停）；四方向键 + 中键；▶❚❚ 在**任意界面**都能播放/暂停
+- **曲库**：歌曲 / 歌手 / 专辑 / 音乐 四个入口，专辑内按音轨号排序（未知音轨号排最后）
+- **播放**：播放/暂停、上一首/下一首、进度与音量调节、随机播放、循环模式、后台播放与锁屏/通知栏控制（MediaSession 前台服务）
+- **正在播放**：主菜单底部动态出现「正在播放 + 当前曲名」，曲名过长**跑马灯循环滚动**
+- **双主题**：经典银色（仿 iPod Classic）/ 深色背光，设置内切换并持久化
+- **扫描诊断**：权限状态、扫描来源统计（媒体库 / 目录补充）、检查过的目录清单，便于定位"为什么扫不到歌"
+- **持久化**：设置与播放会话（队列/上次曲目/播放位置/音量）本地保存，重启恢复并停在上次位置
+
+## 工程亮点
+
+**1. 双主题切换零重建**
+调色板集中在一个文件（`src/theme/palettes.ts`），组件样式由 `makeThemedStyles` 在模块作用域**预生成两套 StyleSheet**；切换主题只换样式表引用，不重建组件树、不重算样式。
+
+**2. 真实材质：程序化生成的贴图 + 会转的颗粒**
+`react-native-svg` 15 在 Android 上**没有实现 `feTurbulence`**（源码直接调用 `warnUnimplementedFilter()`），程序化噪点这条路是死的。于是写了 [scripts/generate-textures.py](scripts/generate-textures.py)，用 Pillow + 固定随机种子生成 5 张**无缝可平铺**贴图（哑光硅胶颗粒 / 铝拉丝 / 柔光高光 / 玻璃反射 / 消色带噪点），全部可复现。
+点击轮的颗粒层**随手指转动同步旋转**：手势里直接 `Animated.Value.setValue()`，走原生驱动，不触发 React 重渲染。
+
+**3. 中文像素字体管线**
+LCD 用像素字体，但 VT323 只覆盖拉丁——中文会回退到系统字体，像素风当场破功。试过的路都堵着：Google Fonts 没有简体中文像素字体（CSS API 实测 400）、Fontsource 的缝合像素包只带 latin 子集、泛 CJK 包按 unicode-range 拆成 1960 个 woff2（RN 不支持按 unicode-range 回退，也不支持 woff2）。
+最终方案：取 npm 上的 **GNU Unifont**（OFL-1.1，全 CJK 点阵）woff2，**自己写 sfnt/cmap 解析**校验码位覆盖（57,087 个），再用 `wawoff2` 转成 TTF 供 RN 使用，脚本化为 [scripts/make-pixel-font.mjs](scripts/make-pixel-font.mjs)。
+
+**4. 无设备也能验证逻辑：断言跑在 Node 上**
+`npm run verify` 会把纯逻辑模块（时间格式化、洗牌、专辑/歌手归并、音量钳制）用独立 tsconfig 编译到 `.verify/`，再用 Node 跑断言。它抓到过一个真实缺陷：专辑内排序把"无音轨号"的曲目排到了最前面。
+
+**5. 用像素当证据，而不是"看起来对"**
+没有可用的模拟器输入注入（机型限制），于是建立了一套外部验证手段：adb 深链跳转到任意路由 + `uiautomator dump` 读控件树 + **逐帧像素差**判断动画是否真的在动。
+两个具体例子：跑马灯是否"滚动→停顿"循环，用相邻帧差异（933 / 0 / 7223 像素）证明；点击轮与屏幕边框的实际宽度，先用轮盘直径反推出屏幕密度（2.977 px/dp），再把测得的像素换算成 dp 核对（实测黑框 6.05dp，与配置的 6dp 一致）。
+
+**6. 让原生改动在 `prebuild` 后不丢失**
+`android/` 是 CNG 生成目录（已 gitignore），手写进去的改动会在下次 `prebuild` 被抹掉。为此写了两个 config plugin：
+- [plugins/withAndroidBuildFixes.js](plugins/withAndroidBuildFixes.js)：排除重复的 media3 fork 依赖 + 补官方 `media3-inspector`；把 Gradle daemon 的 toolchain 从 25 降到 21（RN 0.86 默认 JDK 25，而 JDK 24+ 限制 `System.load`，会让 CMake 任务失败）；写入本机 JDK 路径避免联网下载
+- [plugins/withReleaseSigning.js](plugins/withReleaseSigning.js)：注入固定签名密钥，并让 debug 与 release **共用同一把密钥**（开发包与分享包互相覆盖安装时不必卸载）
+
+**7. 权限最小化**
+对外只保留 `READ_MEDIA_AUDIO`、`READ_EXTERNAL_STORAGE`（maxSdk 32）、前台服务与音频相关权限；`RECORD_AUDIO`、`WRITE_EXTERNAL_STORAGE`、`VIBRATE`、`READ_MEDIA_VISUAL_USER_SELECTED` 均显式移除（`tools:node="remove"`），release 包里也不含 `SYSTEM_ALERT_WINDOW`。
+
+**8. 可独立分发的 release 包**
+arm64 单架构 51MB，内嵌 JS 字节码 + 12MB 字体 + 贴图，**不需要开发服务器、不需要联网**；用固定密钥签名，已安装用户可直接覆盖升级。
+
+## 技术栈
+
+| 层 | 选型 |
+| --- | --- |
+| 框架 | Expo SDK 57 · React Native 0.86 · React 19 · TypeScript |
+| 路由 | expo-router（`experiments.typedRoutes` 类型化路由） |
+| 状态 | Zustand（播放器 / 设置两个 store）+ AsyncStorage 持久化 |
+| 音频 | expo-audio（后台播放 + MediaSession 锁屏控制） |
+| 曲库 | expo-media-library（MediaStore 分页）+ 自写文件系统兜底扫描 + `@missingcore/react-native-metadata-retriever` 读标签与封面 |
+| 视觉 | react-native-svg（渐变/点阵/暗角）· react-native-gesture-handler（转盘手势）· 自生成位图贴图 |
+| 字体 | GNU Unifont（中文像素，OFL-1.1）· JetBrains Mono（按键刻印） |
+| 工具链 | 两个自写 config plugin · Pillow 脚本（贴图/图标）· Node 脚本（字体）· Node 断言 |
+
+## 项目结构
+
+```
+src/
+├─ app/                # expo-router 路由：主菜单/音乐/歌曲/歌手/专辑/正在播放/设置/扫描诊断
+├─ components/ipod/    # 外观层：外壳、LCD、菜单列表、点击轮、材质图层、跑马灯
+├─ components/player/  # 播放器 Provider
+├─ store/              # Zustand：播放器状态、设置
+├─ services/           # 扫描（MediaStore + 文件系统）、封面解析、持久化、曲库索引
+├─ hooks/              # useWheelNav / useTheme / usePlaybackToggle / usePersistence …
+├─ theme/              # 双主题调色板、主题化样式、字体常量
+└─ utils/              # 时间格式化、洗牌、音量钳制
+assets/
+├─ fonts/              # Unifont（OFL 许可证随附）
+├─ textures/           # 程序化生成的 5 张无缝贴图
+├─ brand/              # 图标设计稿原图
+└─ images/             # 图标 / 自适应图标 / 开屏
+scripts/               # 贴图与图标生成、字体转换、逻辑断言
+plugins/               # 两个 Android config plugin
+docs/screenshots/      # README 截图
+```
 
 ## 快速开始
 
 ```bash
 npm install
 
-# 构建并安装到已连接的模拟器 / 真机（首次约 5~15 分钟）
-npx expo run:android
+# 需要原生模块（metadata-retriever / expo-audio 等），必须用开发构建，不能用 Expo Go
+npx expo prebuild -p android
+npx expo run:android          # 或先在 Android Studio 打开 android/ 后运行
 
-# 日常开发：起 Metro 后改代码热更新
-npx expo start
+# 纯逻辑断言（不需要设备）
+npm run verify
+
+# 重新生成素材（可选）
+python scripts/generate-textures.py       # 材质贴图
+python scripts/prepare-app-icon.py        # 图标与开屏
+node   scripts/make-pixel-font.mjs        # 中文像素字体（woff2 → TTF）
 ```
 
-真机调试：手机开启「开发者选项 → USB 调试」，`adb devices` 能列出设备后执行 `npx expo run:android`。
+出包与分享、签名密钥、常见问题等细节见下方章节。
 
-### 无需设备的校验
+## 已知限制
 
-```bash
-npx tsc --noEmit                 # 全量类型检查
-npm run verify                   # 纯逻辑断言（专辑/歌手分组、时长格式化、洗牌）
-```
+- 只支持 Android（未做 iOS 适配）；最低 Android 7.0
+- 12MB 像素字体使包体偏大（可换更小的开源像素字体或做子集）
+- release 包未上架应用商店，属自签名分发（安装时需允许"未知来源"）
+- 尚未实现：播放列表编辑、Genres 分类、歌词、EQ
+- UI 细节仍在打磨（材质参数、网格密度等）
 
-`npm run verify` 把纯函数编译到 `.verify/` 后用 Node 直接跑断言，不需要模拟器或真机，
-适合在改完分组 / 排序 / 格式化逻辑后快速回归。渲染与原生行为仍需在设备上验证。
+## 许可与致谢
 
-## 目录结构
+- **字体**：GNU Unifont，SIL OFL-1.1，许可证见 [assets/fonts/LICENSE-Unifont.txt](assets/fonts/LICENSE-Unifont.txt)
+- **本项目与 Apple 无关**：`iPod`、点击轮造型均为 Apple 的商标/设计标识，本项目仅作个人学习与技术演示，应用对外名称为 **HiPod**，不使用任何 Apple 素材
+- 代码由 AI 智能体生成；如需开源许可（如 MIT）可自行添加
 
-```
-src/
-├── app/                    # expo-router 路由
-│   ├── _layout.tsx         # 根布局：字体 / 播放引擎 / 持久化
-│   ├── index.tsx           # 主菜单
-│   ├── music.tsx           # 音乐子菜单
-│   ├── songs.tsx           # 歌曲列表
-│   ├── artists.tsx         # 歌手列表
-│   ├── artist.tsx          # 歌手 → 专辑
-│   ├── albums.tsx          # 专辑列表
-│   ├── album.tsx           # 专辑 → 曲目
-│   ├── player.tsx          # 正在播放（中键切换「进度 / 音量」）
-│   └── settings.tsx        # 设置
-├── components/
-│   ├── ipod/               # ClickWheel / LcdScreen / MenuList / IpodShell / LibraryList / Gradients
-│   └── player/             # AudioPlayerProvider（native 播放器桥接）
-├── hooks/                  # useWheelNav / useMediaLibrary / usePersistence
-├── services/               # scanner / filesystemScan / metadata / artwork / libraryIndex / persistence
-├── store/                  # zustand：player / library / settings
-├── theme/                  # colors / fonts
-├── types/                  # Track / RepeatMode / ScanStatus
-└── utils/                  # format / array
-```
+---
+
+# 详细技术文档
+
+以下章节是项目的深度参考：外观规范、材质与字体实现、原生构建修补、打包发布与排障记录。
 
 ## 界面风格（双主题）
 
@@ -180,14 +289,28 @@ cd android && ./gradlew :app:assembleDebug
 - 点击轮在下半屏**垂直居中**，其与 LCD 的间距和与屏幕底边的间距相等（屏幕中下位置）
 - 因此换页时点击轮坐标不会漂移
 
-## 里程碑状态
+## 开发里程碑与演进
+
+功能里程碑：
 
 - **M1 骨架** ✅ Expo 工程 + 路由 + 字体/主题 + 点击轮
 - **M2 扫描** ✅ 权限 + MediaStore 分页 + 标签读取 + 惰性封面 + **文件系统兜底扫描**
 - **M3 播放** ✅ 播放/暂停/切歌/进度/音量 + 后台播放 + 锁屏与通知栏控制（MediaSession 前台服务）
-- **M4 界面** ✅ LCD 径向背光 + 扫描线 + 金属机身渐变 + 蓝光晕 + 轮盘渐变 + 进度菱形播放头 + 惯性滚动
+- **M4 界面** ✅ LCD 背光 + 金属机身渐变 + 蓝光晕 + 轮盘渐变 + 进度菱形播放头
 - **M5 打磨** ✅ 菜单反色选中 + 随机 + 循环 + 设置页 + 状态持久化 + 播放进度恢复
-- **M6（v2）** ⬜ 播放列表编辑、风格 Genres
+- **M6（未做）** ⬜ 播放列表编辑、风格 Genres
+
+交付后的几轮迭代（按验收反馈推进，记录在此以体现演进过程）：
+
+| 轮次 | 内容 |
+| --- | --- |
+| 交互修正 | 固定 LCD 尺寸与轮盘位置（各界面版式一致）· 音量改两段式 · **移除滚轮惯性** · 修复列表首行标题被裁 |
+| 双主题 | 从单主题重构为调色板 + 预生成样式表；新增「经典银色」 |
+| 材质重构 | 黑电子框（外圆角/内直角）· 阳极氧化铝拉丝 · 哑光硅胶点击轮（颗粒随转动）· 复古点阵屏（3dp 点阵 + 节奏吸附） |
+| 交互补充 | 主菜单「正在播放」条目（跑马灯）· ▶❚❚ 全局生效 |
+| 字体 | 中文像素字体（Unifont）替换系统字体回退 |
+| 品牌与发布 | 新图标/开屏（3D 轮盘 + 金色音符）· 更名 **HiPod** · 固定密钥签名 + arm64 release 自签名分发 |
+
 
 ## 曲库扫描说明
 
