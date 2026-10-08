@@ -236,6 +236,43 @@ adb shell content call --method scan_volume --uri content://media --arg external
   下次启动恢复并停在上次位置（不自动播放）。
 - 封面惰性解析后落盘为 `file://` 路径，**不存 base64**。
 
+## 打包与分享（不上架）
+
+应用名 **HiPod**，包名 `com.arleta.ipodplayer`，最低 Android 7.0（minSdk 24）。
+
+### 固定签名密钥
+
+分享用的包必须用**固定密钥**签名，否则以后 `android/` 重建（debug keystore 重新生成）
+会导致别人装不上新包、必须先卸载。
+
+- 密钥：`keys/hipod-release.jks`（已 gitignore，**务必另行备份**）
+- 口令：`keys/keystore.properties`（同样已 gitignore）
+- 注入方式：[plugins/withReleaseSigning.js](plugins/withReleaseSigning.js) 在 prebuild 时写入
+  `signingConfigs.release`，并让 **debug 与 release 共用同一密钥** —— 这样开发包与分享包
+  之间来回安装不需要先卸载
+- 也可用环境变量覆盖：`HIPOD_KEYSTORE` / `HIPOD_KEYSTORE_PASSWORD` / `HIPOD_KEY_ALIAS` / `HIPOD_KEY_PASSWORD`
+
+丢失密钥的后果：已安装该包的人**无法覆盖更新，只能卸载重装**。
+
+### 出包
+
+```bash
+npx expo prebuild -p android
+cd android && ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a
+# → app/build/outputs/apk/release/app-release.apk
+```
+
+- `-PreactNativeArchitectures=arm64-v8a` 只打 arm64（现代手机都是），包体约 50MB；
+  省略则打全部四种架构（约 60~100MB）
+- release 包**内嵌 JS bundle（Hermes 字节码）、字体与贴图**，不需要 Metro、不需要联网
+- 每次对外发新版请递增 `app.json` 里的 `android.versionCode`
+
+### 别人安装时
+
+1. 允许「安装未知应用」；Google Play 保护机制可能提示「未经扫描」→ 选**仍要安装**
+2. 小米/HyperOS 还需开启「USB 安装」或给文件管理器安装权限
+3. 首次打开会申请**读取音频文件**权限，授权后扫描本机音乐（手机里得有音乐）
+
 ## 常见问题
 
 **改完原生资源（图标 / 开屏 / prebuild）后应用一直卡在开屏**

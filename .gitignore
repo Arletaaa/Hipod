@@ -52,3 +52,6 @@ example
 /android
 
 .npm-cache/
+
+keys/
+*.jks

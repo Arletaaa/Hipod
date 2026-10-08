@@ -39,6 +39,7 @@
     },
     "plugins": [
       "./plugins/withAndroidBuildFixes",
+      "./plugins/withReleaseSigning",
       "expo-router",
       [
         "expo-splash-screen",
