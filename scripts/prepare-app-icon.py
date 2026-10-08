@@ -36,24 +36,59 @@ FOREGROUND_RATIO = 0.60
 SPLASH_RATIO = 0.92
 
 
+def _luma(rgb: np.ndarray) -> np.ndarray:
+    return 0.299 * rgb[..., 0] + 0.587 * rgb[..., 1] + 0.114 * rgb[..., 2]
+
+
+def outer_background_mask(rgb: np.ndarray, scale: int = 4) -> np.ndarray:
+    """求「与画布边界连通的浅色背景」掩膜。
+
+    不能用 PIL 的 ImageDraw.floodfill：它的 thresh 是相对**填充值**而不是种子值
+    （实测填充 0 像素）。这里用形态学重建（迭代膨胀 ∩ 候选）自己实现，
+    并在 1/scale 分辨率上做，避免上千次全尺寸迭代。
+    """
+    h, w = rgb.shape[:2]
+    lum = _luma(rgb)
+    small = np.asarray(
+        Image.fromarray(lum.astype(np.uint8), mode="L").resize(
+            (max(1, w // scale), max(1, h // scale)), Image.BILINEAR
+        )
+    ).astype(np.float32)
+    cand = small > 198
+
+    cur = np.zeros_like(cand)
+    cur[0, :] |= cand[0, :]
+    cur[-1, :] |= cand[-1, :]
+    cur[:, 0] |= cand[:, 0]
+    cur[:, -1] |= cand[:, -1]
+    while True:
+        nxt = cur.copy()
+        nxt[1:, :] |= cur[:-1, :]
+        nxt[:-1, :] |= cur[1:, :]
+        nxt[:, 1:] |= cur[:, :-1]
+        nxt[:, :-1] |= cur[:, 1:]
+        nxt &= cand
+        if np.array_equal(nxt, cur):
+            break
+        cur = nxt
+
+    grown = np.asarray(
+        Image.fromarray((cur * 255).astype(np.uint8), mode="L").resize((w, h), Image.NEAREST)
+    )
+    # 放回全分辨率后再用亮度约束一次，避免膨胀溢出到主体边缘
+    return (grown > 127) & (lum > 190)
+
+
 def cut_out_background(img: Image.Image) -> Image.Image:
-    """把从画布边缘连通的白色背景抠成透明（内部白色保持不变）。"""
+    """把与画布边缘连通的浅色背景（含柔和投影）抠成透明，内部白色一律保留。"""
     rgba = img.convert("RGBA")
-    arr = np.asarray(rgba).astype(np.int16)
-    near_white = (arr[..., :3].min(axis=2) > 242).astype(np.uint8) * 255
+    arr = np.asarray(rgba)
+    outside = outer_background_mask(arr[..., :3].astype(np.float32))
 
-    mask = Image.fromarray(near_white, mode="L")
-    # 从四角泛洪，只标记与外边界连通的白色区域
-    for xy in ((0, 0), (mask.width - 1, 0), (0, mask.height - 1), (mask.width - 1, mask.height - 1)):
-        ImageDraw.floodfill(mask, xy, 128, thresh=12)
-
-    outside = np.asarray(mask) == 128
-    alpha = np.asarray(rgba).copy()
-    alpha[..., 3] = np.where(outside, 0, 255).astype(np.uint8)
-    out = Image.fromarray(alpha, mode="RGBA")
-    # 边缘做一点点羽化，避免锯齿
-    a = out.split()[3].filter(ImageFilter.GaussianBlur(0.7))
-    out.putalpha(a)
+    out_arr = arr.copy()
+    out_arr[..., 3] = np.where(outside, 0, 255).astype(np.uint8)
+    out = Image.fromarray(out_arr, mode="RGBA")
+    out.putalpha(out.split()[3].filter(ImageFilter.GaussianBlur(0.8)))
     return out
 
 
