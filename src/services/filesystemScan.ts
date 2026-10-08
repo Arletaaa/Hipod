@@ -78,10 +78,16 @@ export async function scanAudioFiles(): Promise<FilesystemScanResult> {
     for (const entry of entries) {
       if (found.size >= MAX_FILES) break;
       try {
-        if (entry instanceof Directory) {
+        // 以 instanceof 为主，并用「是否有 list 方法」兜底判别目录：
+        // 若 JSI 边界返回的对象原型未正确串联，instanceof 会静默失配，
+        // 导致兜底扫描返回 0 个文件（正是「扫不到歌」这类症状）。
+        const probe = entry as unknown as { list?: unknown; extension?: unknown };
+        const isDirectory = entry instanceof Directory || typeof probe.list === 'function';
+
+        if (isDirectory) {
           subdirectories.push(entry.uri);
-        } else if (entry instanceof File) {
-          const ext = entry.extension.replace(/^\./, '').toLowerCase();
+        } else if (typeof probe.extension === 'string') {
+          const ext = probe.extension.replace(/^\./, '').toLowerCase();
           if (AUDIO_EXTENSIONS.has(ext)) {
             found.set(entry.uri, { uri: entry.uri, name: entry.name });
           }
