@@ -231,3 +231,21 @@ adb shell content call --method scan_volume --uri content://media --arg external
 - 设置（重复模式 / 随机）与播放会话（队列 / 上次曲目 / 播放位置 / 音量）通过 AsyncStorage 持久化，
   下次启动恢复并停在上次位置（不自动播放）。
 - 封面惰性解析后落盘为 `file://` 路径，**不存 base64**。
+
+## 常见问题
+
+**改完原生资源（图标 / 开屏 / prebuild）后应用一直卡在开屏**
+
+`npx expo prebuild` 会**删除并重建 `android/`**，正在运行的 Metro 文件监听会因此失效：
+此后字体、贴图等静态资源会返回 404，**且响应要等 30~40 秒**，应用就会长时间停在开屏
+（`useFonts` 一直不 resolve）。**重启 Metro 即可恢复** —— 这也意味着做原生改动时应先停 Metro。
+
+排查手段：直接向 Metro 要一次资源，确认是 200 且很快（注意路径里 `assets/` 会出现两次，
+因为它是项目根下的相对路径）：
+
+```bash
+# 8081 换成你当前 Metro 的端口；hash 用文件的 md5
+curl -s -o NUL -w "%{http_code} %{time_total}s\n" \
+  "http://localhost:8081/assets/assets/fonts/unifont-pixel.ttf?platform=android&hash=<md5>"
+```
+
