@@ -67,7 +67,7 @@ export async function scanLibrary(
   }
 
   // ---- 2. 文件系统兜底（排除已被 MediaStore 收录的同名文件）----
-  const fsResult = scanAudioFiles();
+  const fsResult = await scanAudioFiles();
   const knownPaths = new Set(assets.map((a) => normalizePath(a.uri)));
   const extraFiles = fsResult.files.filter((f) => !knownPaths.has(normalizePath(f.uri)));
 
