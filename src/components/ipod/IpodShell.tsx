@@ -72,8 +72,8 @@ function makeStyles(palette: Palette) {
     safeArea: {
       flex: 1,
       alignItems: 'center',
-      paddingHorizontal: 14,
-      paddingVertical: 10,
+      paddingHorizontal: 15,
+      paddingVertical: 9,
     },
     lcdSlot: {
       flex: 1,

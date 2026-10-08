@@ -101,8 +101,8 @@ function makeStyles(palette: Palette) {
     row: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: 8,
-      borderRadius: 2,
+      paddingHorizontal: 9,
+      borderRadius: 3,
     },
     rowSelected: {
       backgroundColor: palette.lcd.selectionBg,
@@ -115,8 +115,12 @@ function makeStyles(palette: Palette) {
       fontFamily: fonts.lcd,
       // VT323 默认行高约为字号的 1.5 倍，会让「主标题 + 副标题」超出 rowHeight
       // 并向上溢出（第一行标题被列表顶部裁掉），因此显式收紧行高。
+      // 行高与下边距都取网格间距（3dp）的整数倍，保证文字行落在点阵上。
       fontSize: 20,
-      lineHeight: 22,
+      lineHeight: 24,
+      textShadowColor: palette.material.textDotShadow,
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 0,
     },
     labelSelected: {
       color: palette.lcd.selectionText,
@@ -125,8 +129,11 @@ function makeStyles(palette: Palette) {
       color: palette.lcd.textSecondary,
       fontFamily: fonts.lcd,
       fontSize: 14,
-      lineHeight: 16,
-      marginTop: 2,
+      lineHeight: 15,
+      marginTop: 3,
+      textShadowColor: palette.material.textDotShadow,
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 0,
     },
     sublabelSelected: {
       color: palette.lcd.selectionSubText,

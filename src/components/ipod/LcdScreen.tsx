@@ -92,22 +92,26 @@ function makeStyles(palette: Palette) {
       borderRadius: 3,
       overflow: 'hidden',
     },
-    /** 内容层：标题栏与内容的内边距。 */
+    /** 内容层：标题栏与内容的内边距（取 3dp 网格的整数倍）。 */
     body: {
       flex: 1,
-      padding: 10,
+      padding: 9,
     },
     titleBar: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      gap: 8,
+      gap: 9,
     },
     title: {
       color: palette.lcd.text,
       fontFamily: fonts.lcd,
       fontSize: 22,
+      lineHeight: 24,
       flexShrink: 1,
+      textShadowColor: palette.material.textDotShadow,
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 0,
     },
     statusIcon: {
       color: palette.lcd.textSecondary,
@@ -115,13 +119,15 @@ function makeStyles(palette: Palette) {
       fontSize: 12,
     },
     divider: {
-      height: 1,
-      backgroundColor: palette.lcd.divider,
-      marginVertical: 7,
+      // 高度取 3dp（内含 1px 线），保证纵向节奏整体是网格间距的整数倍
+      height: 3,
+      borderTopWidth: 1,
+      borderTopColor: palette.lcd.divider,
+      marginVertical: 6,
     },
     content: {
       flex: 1,
-      gap: 4,
+      gap: 3,
     },
   });
 }

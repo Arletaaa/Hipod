@@ -65,8 +65,10 @@ export interface Palette {
     metalShadow: string;
     /** 复古屏的底色偏色（早期 TN 屏略偏冷绿）。 */
     screenCast: string;
-    /** 像素网格线颜色。 */
+    /** 像素网格（点阵）颜色。 */
     screenGrid: string;
+    /** 文字的点阵描边阴影：让字形看起来由点阵拼出。 */
+    textDotShadow: string;
     /** 硅胶件边缘的暗部（让操作件"陷入"机身）。 */
     siliconeShade: string;
     /** 硅胶件上的柔光（顶部受光）。 */
@@ -121,7 +123,8 @@ export const PALETTES: Record<ThemeName, Palette> = {
       metalHighlight: 'rgba(255,255,255,0.16)',
       metalShadow: 'rgba(0,0,0,0.65)',
       screenCast: 'rgba(10,30,50,0.0)',
-      screenGrid: 'rgba(230,244,255,0.05)',
+      screenGrid: 'rgba(230,244,255,0.075)',
+      textDotShadow: 'rgba(255,255,255,0.06)',
       siliconeShade: 'rgba(0,0,0,0.55)',
       siliconeSheen: 'rgba(255,255,255,0.10)',
       brushedOpacity: 0.5,
@@ -171,7 +174,8 @@ export const PALETTES: Record<ThemeName, Palette> = {
       metalShadow: 'rgba(0,0,0,0.30)',
       // 早期 TN 屏那点冷绿偏色
       screenCast: 'rgba(196,214,198,0.16)',
-      screenGrid: 'rgba(30,40,35,0.045)',
+      screenGrid: 'rgba(30,40,35,0.075)',
+      textDotShadow: 'rgba(0,0,0,0.07)',
       siliconeShade: 'rgba(0,0,0,0.14)',
       siliconeSheen: 'rgba(255,255,255,0.55)',
       brushedOpacity: 0.75,

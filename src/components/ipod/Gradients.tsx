@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import Svg, {
+  Circle,
   Defs,
   LinearGradient,
   Pattern,
@@ -33,22 +34,33 @@ export function LcdBacklight() {
   );
 }
 
+/** 网格间距（dp）。内容侧的纵向节奏都按它的整数倍对齐。 */
+export const GRID_PITCH = 3;
+
 /**
- * 复古像素网格：每 4px 一条极淡细线（两个方向），模拟早期 LCD 的像素栅格。
- * 颜色取自材质的 screenGrid，明暗主题各自适配。
+ * 复古点阵：每 {@link GRID_PITCH} dp 一个 hairline 圆点，模拟早期点阵屏。
+ * 用点而非线，既更细也不像"方格纸"；颜色取自材质的 screenGrid，随主题适配。
  */
 export function PixelGrid() {
   const palette = usePalette();
   const color = palette.material.screenGrid;
+  // 0.4dp ≈ 1 物理像素（本机 density≈2.75），作为最小可见点
+  const dot = 0.4;
   return (
     <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
       <Defs>
-        <Pattern id="lcdPixelGrid" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
-          <Rect x="0" y="0" width="4" height="1" fill={color} />
-          <Rect x="0" y="0" width="1" height="4" fill={color} opacity={0.6} />
+        <Pattern
+          id="lcdDotGrid"
+          x="0"
+          y="0"
+          width={GRID_PITCH}
+          height={GRID_PITCH}
+          patternUnits="userSpaceOnUse"
+        >
+          <Circle cx={dot} cy={dot} r={dot} fill={color} />
         </Pattern>
       </Defs>
-      <Rect x="0" y="0" width="100%" height="100%" fill="url(#lcdPixelGrid)" />
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#lcdDotGrid)" />
     </Svg>
   );
 }
