@@ -95,33 +95,26 @@ adb shell content call --method scan_volume --uri content://media --arg external
 
 或直接把音频文件放进设备 `Music/` 目录。设置页 → 关于 会显示「媒体库 N 首 · 目录 M 首」用于定位问题。
 
-## ⚠️ 原生工程（`android/`）注意事项
+## ⚠️ 原生工程（`android/`）与自动修补
 
-`android/` 是 Expo CNG 生成的目录，**已被 .gitignore 忽略**，且 `npx expo prebuild --clean` 会重新生成并**覆盖**其中的手工改动。
-当前工程依赖以下 3 处原生侧改动，若重新 prebuild 需重新应用：
+`android/` 是 Expo CNG 生成的目录，**已被 .gitignore 忽略**，`npx expo prebuild --clean` 会整目录重新生成。
+本项目依赖的 3 处原生侧改动已由 **[plugins/withAndroidBuildFixes.js](plugins/withAndroidBuildFixes.js)** 在 prebuild 时自动应用，
+因此「全新克隆 → `npx expo prebuild` → `npx expo run:android`」可直接构建，无需手工改文件。
 
-1. **`android/gradle.properties`** — 让 Gradle 使用本机 JDK，避免去 GitHub 下载 JDK 25（国内网络会失败）：
+| # | 位置 | 插件做的事 | 原因 |
+| --- | --- | --- | --- |
+| 1 | `android/app/build.gradle` | 注入 `configurations.configureEach { exclude group: "com.github.MissingCore.media" }` 与官方 `media3-inspector` 依赖 | metadata-retriever 带入的 MissingCore fork media3 与 expo-audio 的官方 androidx.media3 类重复（duplicate class） |
+| 2 | `android/gradle/gradle-daemon-jvm.properties` | `toolchainVersion` 由 25 改为 **21** | RN 0.86 默认要 daemon 跑 JDK 25，而 JDK 24+/25 限制 `System.load`（[gradle/gradle#31625](https://github.com/gradle/gradle/issues/31625)），会让 worklets/screens 的 `configureCMakeDebug` 失败 |
+| 3 | `android/gradle.properties` | 写入 `org.gradle.java.home` 与 `org.gradle.java.installations.paths` | 让 Gradle 用本机 JDK，避免联网下载 JDK 25（国内网络易失败） |
 
-   ```properties
-   org.gradle.java.installations.paths=<Android Studio 自带 JBR 路径>,<本机 JDK 21 路径>
-   # Gradle daemon 跑在 21：JDK 24+/25 限制了 System.load，会让 CMake 配置任务失败
-   # （参见 gradle/gradle#31625）
-   org.gradle.java.home=<本机 JDK 21 路径>
-   ```
+插件读取的环境变量：
 
-2. **`android/gradle/gradle-daemon-jvm.properties`** — 把 `toolchainVersion=25` 改为 `21`（RN 0.86 默认要求 daemon 用 JDK 25，
-   而 JDK 25 上 `react-native-worklets` / `react-native-screens` 的 `configureCMakeDebug` 会因 restricted method 报错）。
+- `JAVA_HOME`：作为 `org.gradle.java.home`（requirement 2 要求它是 **JDK 21**）
+- `ANDROID_STUDIO_JBR`（可选）：Android Studio 自带 JBR 路径，一并加入 Gradle 的 toolchain 搜索路径
 
-3. **`android/app/build.gradle`** — 排除 MissingCore fork 的 media3，避免与 expo-audio 引入的官方 media3 重复类：
-
-   ```groovy
-   configurations.configureEach {
-     exclude group: "com.github.MissingCore.media"
-   }
-   implementation("androidx.media3:media3-inspector:1.9.3")
-   ```
-
-> 若迁移到新机器：确保 JDK 21 与 `ANDROID_HOME` 就绪，并把这 3 处改动重新落到 `android/` 下，或考虑把它们写成 Expo config plugin 自动化。
+验证方式（不会改动你正在用的 `android/`）：把工程复制一份、`node_modules` 用目录联接指向原目录，在副本里执行
+`npx expo prebuild --platform android --no-install`，确认上述 3 处已生成、且 `gradlew --version` 显示
+`Daemon JVM: Compatible with Java 21`。
 
 ## 数据与持久化
 
