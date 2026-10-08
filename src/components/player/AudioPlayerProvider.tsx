@@ -36,9 +36,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // 音量：store → native
+  // 音量：store → native（native 只接受 0–1，越界会抛错，这里兜底钳制含 NaN）
   useEffect(() => {
-    player.volume = volume;
+    player.volume = Number.isFinite(volume) ? Math.min(1, Math.max(0, volume)) : 1;
   }, [player, volume]);
 
   // 锁屏封面：复用 resolveArtwork 的进程级缓存（播放页已解析过时零成本）
@@ -57,26 +57,46 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     };
   }, [currentUri]);
 
-  // 锁屏 / 通知栏元数据：换歌或封面就绪时刷新；无曲目时清除控制
+  // 锁屏 / 通知栏元数据：换歌或封面就绪时刷新；无曲目时清除控制。
+  // 依赖收敛为标量（uri/title/…），避免 queue 中曲目对象被重建时反复调用 native。
+  const lockTrackUri = currentTrack?.uri ?? null;
+  const lockTrackTitle = currentTrack?.title ?? null;
+  const lockTrackArtist = currentTrack?.artist ?? null;
+  const lockTrackAlbum = currentTrack?.album ?? null;
+  const lastLockUriRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!currentTrack) {
+    if (!lockTrackUri) {
       player.clearLockScreenControls();
+      lastLockUriRef.current = null;
       return;
+    }
+    if (lastLockUriRef.current !== lockTrackUri) {
+      // 换曲先清空：新曲目没有内嵌封面时，锁屏不会残留上一首的封面
+      player.clearLockScreenControls();
+      lastLockUriRef.current = lockTrackUri;
     }
     player.setActiveForLockScreen(
       true,
       {
-        title: currentTrack.title,
-        artist: currentTrack.artist,
-        albumTitle: currentTrack.album,
+        title: lockTrackTitle ?? '',
+        artist: lockTrackArtist ?? '',
+        albumTitle: lockTrackAlbum ?? '',
         ...(lockArtwork ? { artworkUrl: lockArtwork } : {}),
       },
       { showSeekForward: true, showSeekBackward: true },
     );
-  }, [player, currentTrack, lockArtwork]);
+  }, [
+    player,
+    lockTrackUri,
+    lockTrackTitle,
+    lockTrackArtist,
+    lockTrackAlbum,
+    lockArtwork,
+  ]);
 
-  // 换源时丢弃上一个音源挂起的 seek，避免把位置错误地应用到新曲目
-  const pendingSeekRef = useRef<number | null>(null);
+  // 挂起的 seek 绑定音源：换源后不再把旧曲目的位置应用到新曲目
+  const pendingSeekRef = useRef<{ uri: string; seconds: number } | null>(null);
   useEffect(() => {
     pendingSeekRef.current = null;
   }, [currentUri]);
@@ -88,9 +108,9 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       lastAppliedSeekRef.current = seekToken;
       if (isLoaded) {
         void player.seekTo(seekSeconds);
-      } else {
+      } else if (currentUri) {
         // 音频尚未加载完成（典型：启动时恢复上次播放位置），记下来等加载后补做
-        pendingSeekRef.current = seekSeconds;
+        pendingSeekRef.current = { uri: currentUri, seconds: seekSeconds };
       }
     }
     if (isPlaying) {
@@ -98,15 +118,16 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     } else {
       player.pause();
     }
-  }, [player, isPlaying, seekToken, seekSeconds, isLoaded]);
+  }, [player, isPlaying, seekToken, seekSeconds, isLoaded, currentUri]);
 
-  // 加载完成后补做挂起的 seek（进度恢复）
+  // 加载完成后补做挂起的 seek（进度恢复）；音源已变则直接丢弃
   useEffect(() => {
-    if (!isLoaded || pendingSeekRef.current == null) return;
-    const target = pendingSeekRef.current;
+    const pending = pendingSeekRef.current;
+    if (!isLoaded || !pending) return;
     pendingSeekRef.current = null;
-    void player.seekTo(target);
-  }, [isLoaded, player]);
+    if (pending.uri !== currentUri) return;
+    void player.seekTo(pending.seconds);
+  }, [isLoaded, player, currentUri]);
 
   // native 状态 → store 同步（进度条/时长/加载态）
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 
 import { loadSession, loadSettings, saveSession, saveSettings } from '@/services/persistence';
 import { usePlayerStore } from '@/store/player';
@@ -71,9 +72,20 @@ export function usePersistence() {
       if (isPlaying && queue.length > 0) persist();
     }, POSITION_SAVE_INTERVAL);
 
+    // 退到后台/失焦时立即落盘：否则最后一次进度可能随进程被杀而丢失
+    const appStateSub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') return;
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      persist();
+    });
+
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       clearInterval(timer);
+      appStateSub.remove();
       unsubscribe();
     };
   }, []);

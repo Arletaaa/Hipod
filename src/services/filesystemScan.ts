@@ -32,6 +32,11 @@ const CANDIDATE_DIRS: { uri: string; depth: number }[] = [
 /** 单次扫描最多收集的文件数，兜住异常目录结构的极端情况。 */
 const MAX_FILES = 5000;
 
+/** 供诊断页展示：本次扫描会检查的目录（路径转成易读形式）。 */
+export const SCAN_DIRECTORY_LABELS: string[] = CANDIDATE_DIRS.map((entry) =>
+  entry.uri.replace('file:///storage/emulated/0', '内部存储'),
+);
+
 export interface FoundAudioFile {
   uri: string;
   name: string;

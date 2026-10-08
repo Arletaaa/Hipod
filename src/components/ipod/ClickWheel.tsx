@@ -24,8 +24,10 @@ const ROTATE_STEP = Math.PI / 6; // 每 30° 触发一档
 
 /** 惯性滚动：松手时统计最近窗口内的档数推算速度。 */
 const VELOCITY_WINDOW_MS = 200;
+/** 速度采样窗口的下限，避免极短跨度算出离谱速度。 */
+const VELOCITY_MIN_SPAN_MS = 80;
 /** 触发惯性的最低速度（档/秒）。 */
-const INERTIA_MIN_VELOCITY = 4;
+const INERTIA_START_VELOCITY = 4;
 /** 惯性计时器间隔（毫秒）。 */
 const INERTIA_TICK_MS = 60;
 /** 每个惯性 tick 的速度衰减系数。 */
@@ -80,14 +82,17 @@ export function ClickWheel({
     }
   }, []);
 
-  /** 松手后按速度继续滚动，速度按 tick 衰减直到低于阈值。 */
+  /**
+   * 松手后按速度继续滚动。
+   * 顺序很关键：先累积位移并结算档位，再衰减、最后判断收尾——
+   * 若先衰减再结算，刚过阈值的速度会被判定为「低于阈值」而一档都不出（静默死区）。
+   */
   const startInertia = useCallback(
     (velocity: number) => {
       stopInertia();
       let v = velocity;
       let carry = 0;
       inertiaRef.current = setInterval(() => {
-        v *= INERTIA_DECAY;
         carry += v * (INERTIA_TICK_MS / 1000);
         while (carry >= 1) {
           carry -= 1;
@@ -97,7 +102,14 @@ export function ClickWheel({
           carry += 1;
           emit(-1);
         }
-        if (Math.abs(v) < INERTIA_MIN_VELOCITY) stopInertia();
+        v *= INERTIA_DECAY;
+        // 收尾判据：剩余位移（未结算的 carry + 后续衰减可累积的距离）不足一档时停止，
+        // 这样不会因为「速度已低于阈值」而丢掉尾部还能走的那一格。
+        const remaining =
+          Math.abs(carry) + (Math.abs(v) * (INERTIA_TICK_MS / 1000)) / (1 - INERTIA_DECAY);
+        if (remaining < 1) {
+          stopInertia();
+        }
       }, INERTIA_TICK_MS);
     },
     [emit, stopInertia],
@@ -131,11 +143,17 @@ export function ClickWheel({
           }
         })
         .onEnd(() => {
-          const marks = marksRef.current;
+          const now = Date.now();
+          // 松手时再按窗口裁剪一次：emit 只在「出新档」时裁剪，
+          // 松手前若已静置，marks 里会残留过期采样。
+          const marks = marksRef.current.filter((m) => now - m.t <= VELOCITY_WINDOW_MS);
           if (marks.length === 0) return;
+          const first = marks[0]!;
+          // 用真实时间跨度归一化，且设下限，避免跨度极小导致速度虚高
+          const span = Math.max(VELOCITY_MIN_SPAN_MS, now - first.t);
           const signedSum = marks.reduce((acc, m) => acc + m.dir, 0);
-          const velocity = signedSum / (VELOCITY_WINDOW_MS / 1000);
-          if (Math.abs(velocity) >= INERTIA_MIN_VELOCITY) {
+          const velocity = signedSum / (span / 1000);
+          if (Math.abs(velocity) >= INERTIA_START_VELOCITY) {
             startInertia(velocity);
           }
         }),

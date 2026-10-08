@@ -46,6 +46,7 @@ export default function SettingsScreen() {
             ? '扫描中…'
             : `${tracks.length} 首`,
     },
+    { id: 'diagnostics', label: '扫描诊断', sublabel: '权限 / 来源 / 路径' },
     { id: 'about', label: '关于', sublabel: 'v1.0.0' },
   ];
 
@@ -64,6 +65,9 @@ export default function SettingsScreen() {
           break;
         case 'rescan':
           void scan();
+          break;
+        case 'diagnostics':
+          router.push('/diagnostics');
           break;
         case 'about':
           setShowAbout(true);
