@@ -34,6 +34,8 @@ export function LcdScreen({ title = 'iPod', statusIcon = '▶', children }: LcdS
 
 const styles = StyleSheet.create({
   screen: {
+    // 填满机身槽位：LCD 尺寸因此与内容多少无关（长列表在 content 内滚动）
+    flex: 1,
     // 底色仅作渐变兜底（渐变铺满其上）
     backgroundColor: colors.lcd.bg1,
     borderRadius: 10,
@@ -63,6 +65,8 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   content: {
+    // 占满标题栏与分割线之外的剩余空间，交给子内容自行排布/滚动
+    flex: 1,
     gap: 4,
   },
 });

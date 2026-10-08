@@ -14,21 +14,21 @@ export interface MenuListProps {
   items: MenuListItem[];
   selectedIndex: number;
   rowHeight?: number;
+  /** 可选高度上限；默认占满 LCD 剩余空间（超出则内部滚动）。 */
   maxHeight?: number;
 }
 
 /**
  * iPod 菜单式列表：选中项反色高亮（白底蓝字），滚轮/按键移动选中时自动居中滚动。
- * 高度 = min(items.length * rowHeight, maxHeight)，短列表不滚动、长列表滚动。
+ * 默认占满 LCD 内容区（长列表在内部滚动），也可用 maxHeight 限制高度上限。
  */
 export function MenuList({
   items,
   selectedIndex,
   rowHeight = 48,
-  maxHeight = 300,
+  maxHeight,
 }: MenuListProps) {
   const listRef = useRef<FlatList<MenuListItem>>(null);
-  const height = Math.min(items.length * rowHeight, maxHeight);
 
   useEffect(() => {
     if (items.length === 0) return;
@@ -50,7 +50,7 @@ export function MenuList({
   return (
     <FlatList
       ref={listRef}
-      style={{ height }}
+      style={[styles.list, maxHeight != null ? { maxHeight } : null]}
       data={items}
       keyExtractor={(it) => it.id}
       renderItem={({ item, index }) => {
@@ -78,6 +78,10 @@ export function MenuList({
 }
 
 const styles = StyleSheet.create({
+  list: {
+    // 占满 LCD 内容区剩余空间；内容超出时列表自身滚动
+    flex: 1,
+  },
   row: {
     justifyContent: 'center',
     paddingHorizontal: 6,

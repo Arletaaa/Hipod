@@ -21,7 +21,6 @@
     "../src/services/libraryIndex.ts",
     "../src/utils/format.ts",
     "../src/utils/array.ts",
-    "../src/utils/inertia.ts",
     "../src/utils/volume.ts",
     "../src/types/track.ts"
   ]

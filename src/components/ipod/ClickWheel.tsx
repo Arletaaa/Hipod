@@ -5,13 +5,6 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { WheelSurface } from '@/components/ipod/Gradients';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
-import {
-  advanceInertia,
-  isInertiaFinished,
-  normalizeVelocity,
-  type InertiaConfig,
-  type InertiaState,
-} from '@/utils/inertia';
 
 export interface ClickWheelProps {
   onMenu?: () => void;
@@ -21,6 +14,8 @@ export interface ClickWheelProps {
   onSelect?: () => void;
   /** 滚轮转动回调：+1 顺时针（列表下移）/ -1 逆时针（列表上移）。 */
   onRotate?: (step: number) => void;
+  /** 滚轮松手（或手势被取消）时回调：用于退出「调节中」状态。 */
+  onRotateEnd?: () => void;
 }
 
 const SIZE = 264;
@@ -29,30 +24,11 @@ const CENTER = 128; // 中键直径
 const DIR = 64; // 四方向键边长
 const ROTATE_STEP = Math.PI / 6; // 每 30° 触发一档
 
-/** 惯性滚动：松手时统计最近窗口内的档数推算速度。 */
-const VELOCITY_WINDOW_MS = 200;
-/** 速度采样窗口的下限，避免极短跨度算出离谱速度。 */
-const VELOCITY_MIN_SPAN_MS = 80;
-/** 触发惯性的最低速度（档/秒）。 */
-const INERTIA_START_VELOCITY = 4;
-/** 惯性计时器间隔（毫秒）。 */
-const INERTIA_TICK_MS = 60;
-/** 每个惯性 tick 的速度衰减系数。 */
-const INERTIA_DECAY = 0.78;
-
-/** 惯性推进配置（与上面常量保持一致，供纯函数使用）。 */
-const INERTIA_CONFIG: InertiaConfig = { tickMs: INERTIA_TICK_MS, decay: INERTIA_DECAY };
-
-interface StepMark {
-  t: number;
-  dir: number;
-}
-
 /**
  * iPod 点击轮（§5.3）：
  * - 环上四个方向键（MENU / ⏮ / ⏭ / ▶❚❚）+ 中键，可点击
  * - 滚轮环带可转动（Pan 手势按角度累计，每 30° 触发一次 onRotate）
- * - 快速转动后松手带惯性：按松手速度继续衰减滚动（§5.3 惯性滚动）
+ * - **无惯性**：手指离开即停止，转动多少走多少
  */
 export function ClickWheel({
   onMenu,
@@ -61,70 +37,32 @@ export function ClickWheel({
   onPlayPause,
   onSelect,
   onRotate,
+  onRotateEnd,
 }: ClickWheelProps) {
   const onRotateRef = useRef(onRotate);
   useEffect(() => {
     onRotateRef.current = onRotate;
   }, [onRotate]);
 
+  const onRotateEndRef = useRef(onRotateEnd);
+  useEffect(() => {
+    onRotateEndRef.current = onRotateEnd;
+  }, [onRotateEnd]);
+
   const angleRef = useRef(0);
   const accumRef = useRef(0);
-  const marksRef = useRef<StepMark[]>([]);
-  const inertiaRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const stopInertia = useCallback(() => {
-    if (inertiaRef.current) {
-      clearInterval(inertiaRef.current);
-      inertiaRef.current = null;
-    }
-  }, []);
-
-  useEffect(() => stopInertia, [stopInertia]);
 
   const emit = useCallback((dir: number) => {
     onRotateRef.current?.(dir);
-    const now = Date.now();
-    const marks = marksRef.current;
-    marks.push({ t: now, dir });
-    // 只保留最近窗口内的采样，避免长按拖动被平均成低速
-    while (marks.length > 0 && now - marks[0]!.t > VELOCITY_WINDOW_MS) {
-      marks.shift();
-    }
   }, []);
-
-  /**
-   * 松手后按速度继续滚动。
-   * 位移结算与收尾判断都在 utils/inertia 的纯函数里（可无设备验证）：
-   * 必须「先结算、后衰减」，否则刚过阈值的速度会一档都不出。
-   */
-  const startInertia = useCallback(
-    (velocity: number) => {
-      stopInertia();
-      let state: InertiaState = { velocity, carry: 0 };
-      inertiaRef.current = setInterval(() => {
-        const result = advanceInertia(state, INERTIA_CONFIG);
-        state = result.state;
-        const direction = result.emit > 0 ? 1 : -1;
-        for (let i = 0; i < Math.abs(result.emit); i += 1) {
-          emit(direction);
-        }
-        if (isInertiaFinished(state, INERTIA_CONFIG)) {
-          stopInertia();
-        }
-      }, INERTIA_TICK_MS);
-    },
-    [emit, stopInertia],
-  );
 
   const rotationGesture = useMemo(
     () =>
       Gesture.Pan()
         .runOnJS(true)
         .onBegin((e) => {
-          stopInertia();
           angleRef.current = Math.atan2(e.y - RADIUS, e.x - RADIUS);
           accumRef.current = 0;
-          marksRef.current = [];
         })
         .onUpdate((e) => {
           const angle = Math.atan2(e.y - RADIUS, e.x - RADIUS);
@@ -143,20 +81,14 @@ export function ClickWheel({
             emit(-1);
           }
         })
+        // onEnd 覆盖正常松手，onFinalize 兜住手势被取消的情况（两者都通知一次收尾）
         .onEnd(() => {
-          const now = Date.now();
-          // 松手时再按窗口裁剪一次：emit 只在「出新档」时裁剪，
-          // 松手前若已静置，marks 里会残留过期采样。
-          const marks = marksRef.current.filter((m) => now - m.t <= VELOCITY_WINDOW_MS);
-          if (marks.length === 0) return;
-          const first = marks[0]!;
-          const signedSum = marks.reduce((acc, m) => acc + m.dir, 0);
-          const velocity = normalizeVelocity(signedSum, now - first.t, VELOCITY_MIN_SPAN_MS);
-          if (Math.abs(velocity) >= INERTIA_START_VELOCITY) {
-            startInertia(velocity);
-          }
+          onRotateEndRef.current?.();
+        })
+        .onFinalize(() => {
+          onRotateEndRef.current?.();
         }),
-    [emit, startInertia, stopInertia],
+    [emit],
   );
 
   return (

@@ -17,23 +17,31 @@ export interface IpodShellProps {
 }
 
 /**
- * iPod 外壳：固定高度的金属机身，LCD 屏 + 点击轮。
- * 布局要点：LCD 与点击轮之间用固定间距（space-between），
- * 保证不同页面下点击轮始终贴在底部同一位置，不随 LCD 内容高度漂移。
+ * iPod 外壳：上半屏固定尺寸的 LCD 机身 + 下半屏居中的点击轮。
+ *
+ * 布局要点（保证所有页面完全一致）：
+ * - 两个 slot 各占一半高度（flex:1），因此 LCD 底边始终落在屏幕中线附近，
+ *   机身大小与内容多少无关 —— 列表再长也只是在 LCD 内部滚动。
+ * - 点击轮在下半屏内垂直居中，于是它与 LCD 的间距和与屏幕底边的间距相等，
+ *   整体位于屏幕中下位置，且不会随页面变化而漂移。
  */
 export function IpodShell({ lcdTitle = 'iPod', lcdStatusIcon = '▶', children, wheel }: IpodShellProps) {
   return (
     <View style={styles.container}>
       <BackdropGlow />
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.body}>
-          <MetalBody />
-          <LcdScreen title={lcdTitle} statusIcon={lcdStatusIcon}>
-            {children}
-          </LcdScreen>
+        <View style={styles.lcdSlot}>
+          <View style={styles.body}>
+            <MetalBody />
+            <LcdScreen title={lcdTitle} statusIcon={lcdStatusIcon}>
+              {children}
+            </LcdScreen>
+          </View>
         </View>
 
-        <ClickWheel {...wheel} />
+        <View style={styles.wheelSlot}>
+          <ClickWheel {...wheel} />
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -47,12 +55,26 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  /** 上半屏：LCD 机身槽位。 */
+  lcdSlot: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  /** 下半屏：点击轮槽位（内部居中 → 上下间距相等）。 */
+  wheelSlot: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   body: {
     width: '100%',
     maxWidth: 360,
+    flex: 1,
     // 底色仅作渐变兜底；MetalBody 铺满其上，overflow 裁出圆角
     backgroundColor: colors.body.metal2,
     borderRadius: 24,

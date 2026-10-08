@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { IpodShell } from '@/components/ipod/IpodShell';
@@ -13,12 +13,10 @@ import { fonts } from '@/theme/fonts';
 
 /** 设置页里滚轮每档对应的音量增减。 */
 const VOLUME_STEP = 0.05;
-/** 「音量」条目在列表中的下标：选中它时滚轮改为调音量。 */
-const VOLUME_INDEX = 2;
 
 /**
- * 设置页（§4 信息架构）：重复模式 / 随机播放 / 音量 / 重新扫描曲库 / 关于。
- * 滚轮在「音量」条目上变为调节音量，其余条目为移动选中。
+ * 设置页（§4 信息架构）：重复模式 / 随机播放 / 音量 / 重新扫描曲库 / 扫描诊断 / 关于。
+ * 音量需按中键进入调节态后滚轮才生效，滚轮松手即自动退出（避免误调）。
  */
 export default function SettingsScreen() {
   const router = useRouter();
@@ -31,11 +29,19 @@ export default function SettingsScreen() {
   const { tracks, scanStatus, scanProgress, scanError, scanStats, scan } = useMediaLibrary();
 
   const [showAbout, setShowAbout] = useState(false);
+  /** 是否处于「音量调节中」：需按中键进入，滚轮松手即退出。 */
+  const [volumeAdjusting, setVolumeAdjusting] = useState(false);
 
   const items: MenuListItem[] = [
     { id: 'repeat', label: '重复模式', sublabel: REPEAT_LABELS[repeatMode] },
     { id: 'shuffle', label: '随机播放', sublabel: shuffle ? '开' : '关' },
-    { id: 'volume', label: '音量', sublabel: `${Math.round(volume * 100)}%` },
+    {
+      id: 'volume',
+      label: '音量',
+      sublabel: volumeAdjusting
+        ? `转动滚轮调节 ${Math.round(volume * 100)}%`
+        : `${Math.round(volume * 100)}%`,
+    },
     {
       id: 'rescan',
       label: '重新扫描曲库',
@@ -61,7 +67,8 @@ export default function SettingsScreen() {
           toggleShuffle();
           break;
         case 'volume':
-          // 音量条目靠滚轮调节，中键无需动作
+          // 中键进入音量调节态；之后滚轮才调音量，松手自动退出
+          setVolumeAdjusting(true);
           break;
         case 'rescan':
           void scan();
@@ -78,16 +85,21 @@ export default function SettingsScreen() {
     },
   });
 
-  // 滚轮：选中「音量」时调音量，否则移动选中项
+  // 选中项变化时退出音量调节态（滚轮移动选中后不应还停留在调节模式）
+  useEffect(() => {
+    setVolumeAdjusting(false);
+  }, [selected]);
+
+  // 滚轮：仅在「音量调节中」调音量，否则移动选中项
   const onRotate = useCallback(
     (step: number) => {
-      if (selected === VOLUME_INDEX && !showAbout) {
+      if (volumeAdjusting && !showAbout) {
         adjustVolume(step * VOLUME_STEP);
       } else {
         move(step);
       }
     },
-    [selected, showAbout, adjustVolume, move],
+    [volumeAdjusting, showAbout, adjustVolume, move],
   );
 
   // MENU：在「关于」里先退回列表，否则返回上级菜单
@@ -108,6 +120,8 @@ export default function SettingsScreen() {
         onPrev: () => move(-1),
         onNext: () => move(1),
         onRotate,
+        // 滚轮松手 → 退出音量调节态（下次要调需再按一次中键）
+        onRotateEnd: () => setVolumeAdjusting(false),
         onPlayPause: () => console.log('[settings] ▶❚❚'),
         onSelect: enter,
       }}
