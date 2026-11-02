@@ -55,3 +55,33 @@ example
 
 keys/
 *.jks
+
+# 视频素材（本地录屏，不入库）
+docs/video/takes/
+.bili-ref/
+
+docs/video/sample/frames/
+
+# local TTS attempts
+.venv/
+.pylibs/
+.tmp/
+
+# 本地构建用的 Gradle home（沙箱内不可写 C:\Users\.gradle）
+.gradle-home/
+
+# 本机构建日志与产物
+build-release.log
+.build/
+
+# AI / 编辑器本地配置（不进仓库）
+.claude/
+.vscode/
+AGENTS.md
+CLAUDE.md
+
+# 本地视频制作与构建产物（不进仓库）
+docs/video/
+scripts/video/
+takes/
+tools/
