@@ -57,42 +57,61 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     };
   }, [currentUri]);
 
-  // 锁屏 / 通知栏元数据：换歌或封面就绪时刷新；无曲目时清除控制。
-  // 依赖收敛为标量（uri/title/…），避免 queue 中曲目对象被重建时反复调用 native。
+  // 锁屏 / 通知栏元数据：换歌时建立一次会话；封面后到只更新元数据。
+  // 注意：不要在这里重复调用 setActiveForLockScreen —— expo-audio 会重建
+  // MediaSession（且不带唯一 ID），进程内出现第二个空 ID 会直接抛
+  // "Session ID must be unique"，表现为冷启动闪退。
   const lockTrackUri = currentTrack?.uri ?? null;
   const lockTrackTitle = currentTrack?.title ?? null;
   const lockTrackArtist = currentTrack?.artist ?? null;
   const lockTrackAlbum = currentTrack?.album ?? null;
-  const lastLockUriRef = useRef<string | null>(null);
+  const lockSessionOwnerRef = useRef<{
+    player: ReturnType<typeof useAudioPlayer>;
+    uri: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!lockTrackUri) {
       player.clearLockScreenControls();
-      lastLockUriRef.current = null;
+      lockSessionOwnerRef.current = null;
       return;
     }
-    if (lastLockUriRef.current !== lockTrackUri) {
-      // 换曲先清空：新曲目没有内嵌封面时，锁屏不会残留上一首的封面
-      player.clearLockScreenControls();
-      lastLockUriRef.current = lockTrackUri;
+    const owner = lockSessionOwnerRef.current;
+    if (owner && owner.player === player && owner.uri === lockTrackUri) {
+      return;
     }
+    // 换曲先清空：释放旧 session，也避免锁屏残留上一首的封面
+    player.clearLockScreenControls();
     player.setActiveForLockScreen(
       true,
       {
         title: lockTrackTitle ?? '',
         artist: lockTrackArtist ?? '',
         albumTitle: lockTrackAlbum ?? '',
-        ...(lockArtwork ? { artworkUrl: lockArtwork } : {}),
       },
       { showSeekForward: true, showSeekBackward: true },
     );
+    lockSessionOwnerRef.current = { player, uri: lockTrackUri };
+  }, [player, lockTrackUri, lockTrackTitle, lockTrackArtist, lockTrackAlbum]);
+
+  // 封面异步解析完成：只更新元数据，不重建会话。
+  useEffect(() => {
+    if (!lockTrackUri || !lockArtwork) {
+      return;
+    }
+    player.updateLockScreenMetadata({
+      title: lockTrackTitle ?? '',
+      artist: lockTrackArtist ?? '',
+      albumTitle: lockTrackAlbum ?? '',
+      artworkUrl: lockArtwork,
+    });
   }, [
     player,
     lockTrackUri,
+    lockArtwork,
     lockTrackTitle,
     lockTrackArtist,
     lockTrackAlbum,
-    lockArtwork,
   ]);
 
   // 挂起的 seek 绑定音源：换源后不再把旧曲目的位置应用到新曲目
