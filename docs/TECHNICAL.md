@@ -1,0 +1,242 @@
+# HiPod 技术说明
+
+[← 返回 README](../README.md)
+
+本文是项目的实现细节参考：材质与字体管线、原生构建修补、曲库扫描、打包与排障。
+
+## 界面风格（双主题）
+
+设置 → **界面风格** 可切换两种风格，选择会持久化：
+
+| 风格 | 说明 |
+| --- | --- |
+| **经典银色**（默认） | 仿 iPod Classic：银色机身 + 纯白点击轮 + 白底列表（选中为蓝底白字） |
+| 深色背光 | 黑色金属机身 + 蓝色背光 LCD + 白色扫描线纹理 |
+
+实现要点：调色板集中在 [src/theme/palettes.ts](../src/theme/palettes.ts)，组件样式用 `makeThemedStyles`
+预生成两套（[src/theme/themedStyles.ts](../src/theme/themedStyles.ts)），切主题只换样式表引用，不重建组件树。
+
+## 材质系统（工业复刻方向）
+
+设计方向：**阳极氧化铝机身 + 哑光硅胶操作件 + 纯黑电子框屏幕 + 早期 TN 屏观感**。
+
+| 部位 | 做法 |
+| --- | --- |
+| 屏幕边框 | 外层**黑电子框**（外框圆角 18、宽度 5px、内唇高光），屏面**内框近直角**（radius 3） |
+| 复古屏 | TN 冷绿偏色 → 像素栅格 → 暗角 → 玻璃反射 → 细微噪点，字体用 VT323 |
+| 机身 | 阳极氧化铝竖向渐变 + 拉丝贴图 + 上下倒角高光/阴影 + 噪点；机身内凹槽让电子框嵌进金属 |
+| 点击轮 | 哑光硅胶：环面颗粒贴图**随手指转动同步旋转**；中键为凸起硅胶按键；图标微凹刻印 |
+
+颗粒层跟随手势时直接 `Animated.Value.setValue()`，走原生驱动，不触发 React 重渲染。
+
+贴图由 [scripts/generate-textures.py](../scripts/generate-textures.py) **程序化生成**（Pillow，固定随机种子，可复现）：
+
+```bash
+python scripts/generate-textures.py    # 输出到 assets/textures/
+```
+
+> ⚠️ 为什么不直接写 SVG 噪点：`react-native-svg` 15 在 Android 上**未实现 `feTurbulence`**
+> （源码里直接调用 `warnUnimplementedFilter()`），程序化颗粒/拉丝只能用可平铺位图实现。
+
+## 字体（中文像素字体）
+
+LCD 文本统一使用 **GNU Unifont**（`assets/fonts/unifont-pixel.ttf`，OFL-1.1）：
+
+- 它是少数**同时具备像素观感与完整中日韩覆盖**的字体（cmap 5.7 万码位），
+  中文不会回退到系统字体 —— 一旦回退，像素风立刻被破坏
+- 12MB（Unifont 把点阵存成轮廓，体积偏大）；如需瘦身可用 `pyftsubset` 做子集，
+  或直接换成更精致的 Fusion Pixel / Zpix（见下）
+
+重新生成：
+
+```bash
+npm i --no-save --cache .npm-cache @fontsource/unifont wawoff2
+node scripts/make-pixel-font.mjs      # woff2 → TTF（RN 不支持 woff2）
+```
+
+脚本会自行解析 sfnt/cmap 校验码位覆盖，再转成 RN 可用的 TTF。
+
+**换成别的手写像素字体**（例如 [Fusion Pixel 缝合像素字体](https://github.com/TakWolf/fusion-pixel-font)、
+[Zpix 最像素](https://github.com/SolidZORO/zpix-pixel-font)）：把单个 `.ttf` 放进
+`assets/fonts/`，然后改两处 —— `src/app/_layout.tsx` 的 `useFonts` 键名、以及
+`src/theme/fonts.ts` 里的 `lcd`（想只让拉丁用 VT323 就把它换回 `lcdLatin`）。
+
+> 为什么不用 VT323 直接显示中文：VT323 只覆盖拉丁，中文会掉到系统字体；
+> Google Fonts 也没有简体中文像素字体（实测 CSS API 返回 400），
+> 而 Fontsource 的 Fusion Pixel 包只带 latin 子集、泛 CJK 包是按 unicode-range
+> 拆分的 woff2（RN 无法按 unicode-range 回退）。
+
+## 图标与开屏
+
+设计稿：**3D 黑点击轮 + 白色中键 + 金色音符**，原图放在
+[assets/brand/icon-source.png](../assets/brand/icon-source.png)（1254×1254）。
+派生脚本 [scripts/prepare-app-icon.py](../scripts/prepare-app-icon.py) 生成 `assets/images/` 下全部素材：
+
+| 文件 | 用途 |
+| --- | --- |
+| `icon.png` | 应用图标（沿用设计稿的白色底与投影） |
+| `android-icon-foreground.png` | 自适应图标前景：**抠掉外层白底**后缩到安全区内 |
+| `android-icon-background.png` | 自适应图标背景（近白微渐变） |
+| `android-icon-monochrome.png` | 单色图标（轮盘剪影 + 音符挖空，由系统着色） |
+| `splash-icon.png` | 开屏图标，配合 `app.json` 里 `expo-splash-screen` 的 `backgroundColor: #FFFFFF` |
+| `favicon.png` | Web 图标 |
+
+重新生成与生效：
+
+```bash
+python scripts/prepare-app-icon.py        # 换设计：替换 assets/brand/icon-source.png 即可
+npx expo prebuild -p android              # 图标/开屏是原生资源，必须重新 prebuild + 构建
+cd android && ./gradlew :app:assembleDebug
+```
+
+> ⚠️ 抠图**不能按亮度去白**：中键、MENU/箭头、音符都是白色，按亮度去白会把它们一起抠掉。
+> 脚本用 flood fill 只清除**从画布边缘连通**的白色区域。
+>
+> ⚠️ 图标与开屏属于原生资源，改完**必须重新构建 APK**才会在桌面/启动时可见；
+> 只改 JS 是看不到效果的。**构建前先停掉 Metro**（见「常见问题」）。
+
+## 点击轮操作映射
+
+| 操作 | 作用 |
+| --- | --- |
+| 转动滚轮 | 菜单/列表选中移动；正在播放页调进度或音量。**无惯性**，手指离开即停 |
+| 中键 | 确认进入；**正在播放页循环切换「进度 ↔ 音量」显示模式**；**设置页进入音量调节态** |
+| MENU | 返回上一级；在「关于」页内先退回设置列表 |
+| ⏮ / ⏭ | 上一首 / 下一首 |
+| ▶❚❚ | 播放 / 暂停。**任一界面都可用**（有曲目在播时），由 `usePlaybackToggle` 统一处理 |
+
+> 主菜单底部在**有曲目时**会多出一行「正在播放 + 当前曲名」（中键进入正在播放界面）；
+> 曲名过长时该行做跑马灯循环滚动（[MarqueeText.tsx](../src/components/ipod/MarqueeText.tsx)）。
+
+> 设置页的音量是「两段式」：先按中键进入调节态，此时转动滚轮才改音量；
+> **滚轮一松手就自动退出调节态**，要再调需重新按中键——避免浏览列表时误触改音量。
+
+## 布局约定
+
+所有页面共用 `IpodShell`，因此版式完全一致：
+
+- LCD 机身固定占**上半屏**（底边落在屏幕中线附近），尺寸不随内容多少变化，
+  长列表在 LCD 内部滚动，不会把机身撑高
+- 点击轮在下半屏**垂直居中**，其与 LCD 的间距和与屏幕底边的间距相等
+- 因此换页时点击轮坐标不会漂移
+
+## 曲库扫描说明
+
+扫描为**双来源合并**（`src/services/scanner.ts`）：
+
+1. **MediaStore**（`expo-media-library`）：正常被系统索引的音频，可直接拿到时长。
+2. **文件系统兜底**（`src/services/filesystemScan.ts`）：遍历 `Music` / `Download` / `Documents` 等目录，
+   发现**未被媒体索引**的音频文件（典型场景：`adb push` 或文件管理器拖入的文件，不会自动进媒体库）。
+   这类曲目拿不到时长，列表显示 `—`，播放时由 native 播放器回填真实时长。
+
+若扫描结果为 0 首，可先确认文件是否已被系统索引：
+
+```bash
+adb shell content query --uri content://media/external/audio/media --projection _id,_display_name
+
+# 手动触发媒体扫描
+adb shell content call --method scan_volume --uri content://media --arg external_primary
+```
+
+或直接把音频文件放进设备 `Music/` 目录。设置页 → 关于 会显示「媒体库 N 首 · 目录 M 首」用于定位问题。
+
+## 原生工程（`android/`）与自动修补
+
+`android/` 是 Expo CNG 生成的目录，**已被 .gitignore 忽略**，`npx expo prebuild --clean` 会整目录重新生成。
+本项目依赖的 3 处原生侧改动已由 **[plugins/withAndroidBuildFixes.js](../plugins/withAndroidBuildFixes.js)** 在 prebuild 时自动应用，
+因此「全新克隆 → `npx expo prebuild` → `npx expo run:android`」可直接构建，无需手工改文件。
+
+| # | 位置 | 插件做的事 | 原因 |
+| --- | --- | --- | --- |
+| 1 | `android/app/build.gradle` | 注入 `configurations.configureEach { exclude group: "com.github.MissingCore.media" }` 与官方 `media3-inspector` 依赖 | metadata-retriever 带入的 MissingCore fork media3 与 expo-audio 的官方 androidx.media3 类重复（duplicate class） |
+| 2 | `android/gradle/gradle-daemon-jvm.properties` | `toolchainVersion` 由 25 改为 **21** | RN 0.86 默认要 daemon 跑 JDK 25，而 JDK 24+/25 限制 `System.load`（[gradle/gradle#31625](https://github.com/gradle/gradle/issues/31625)），会让 worklets/screens 的 `configureCMakeDebug` 失败 |
+| 3 | `android/gradle.properties` | 写入 `org.gradle.java.home` 与 `org.gradle.java.installations.paths` | 让 Gradle 用本机 JDK，避免联网下载 JDK 25 |
+
+插件读取的环境变量：
+
+- `JAVA_HOME`：作为 `org.gradle.java.home`（要求是 **JDK 21**）
+- `ANDROID_STUDIO_JBR`（可选）：Android Studio 自带 JBR 路径，一并加入 Gradle 的 toolchain 搜索路径
+
+验证方式（不会改动你正在用的 `android/`）：把工程复制一份、`node_modules` 用目录联接指向原目录，在副本里执行
+`npx expo prebuild --platform android --no-install`，确认上述 3 处已生成、且 `gradlew --version` 显示
+`Daemon JVM: Compatible with Java 21`。
+
+## 数据与持久化
+
+- 设置（重复模式 / 随机）与播放会话（队列 / 上次曲目 / 播放位置 / 音量）通过 AsyncStorage 持久化，
+  下次启动恢复并停在上次位置（不自动播放）。
+- 封面惰性解析后落盘为 `file://` 路径，**不存 base64**。
+
+## 打包与分享（不上架）
+
+应用名 **HiPod**，包名 `com.arleta.ipodplayer`，最低 Android 7.0（minSdk 24）。
+
+### 固定签名密钥
+
+分享用的包必须用**固定密钥**签名，否则以后 `android/` 重建（debug keystore 重新生成）
+会导致别人装不上新包、必须先卸载。
+
+- 密钥：`keys/hipod-release.jks`（已 gitignore，**务必另行备份**）
+- 口令：`keys/keystore.properties`（同样已 gitignore）
+- 注入方式：[plugins/withReleaseSigning.js](../plugins/withReleaseSigning.js) 在 prebuild 时写入
+  `signingConfigs.release`，并让 **debug 与 release 共用同一密钥** —— 开发包与分享包之间来回安装不需要卸载
+- 也可用环境变量覆盖：`HIPOD_KEYSTORE` / `HIPOD_KEYSTORE_PASSWORD` / `HIPOD_KEY_ALIAS` / `HIPOD_KEY_PASSWORD`
+
+丢失密钥的后果：已安装该包的人**无法覆盖更新，只能卸载重装**。
+
+### 出包
+
+```bash
+npx expo prebuild -p android
+cd android && ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a
+# → app/build/outputs/apk/release/app-release.apk
+```
+
+- `-PreactNativeArchitectures=arm64-v8a` 只打 arm64，包体约 50MB；省略则打全部架构
+- release 包**内嵌 JS bundle（Hermes 字节码）、字体与贴图**，不需要 Metro、不需要联网
+- 每次对外发新版请递增 `app.json` 里的 `android.versionCode`
+
+### 别人安装时
+
+1. 允许「安装未知应用」；Google Play 保护机制可能提示「未经扫描」→ 选**仍要安装**
+2. 小米/HyperOS 还需开启「USB 安装」或给文件管理器安装权限
+3. 首次打开会申请**读取音频文件**权限，授权后扫描本机音乐（手机里得有音乐）
+
+## 常见问题
+
+**改完原生资源（图标 / 开屏 / prebuild）后应用一直卡在开屏**
+
+`npx expo prebuild` 会**删除并重建 `android/`**，正在运行的 Metro 文件监听会因此失效：
+此后字体、贴图等静态资源会返回 404，**且响应要等 30~40 秒**，应用就会长时间停在开屏
+（`useFonts` 一直不 resolve）。**重启 Metro 即可恢复** —— 这也意味着做原生改动时应先停 Metro。
+
+排查手段：直接向 Metro 要一次资源，确认是 200 且很快（注意路径里 `assets/` 会出现两次）：
+
+```bash
+curl -s -o NUL -w "%{http_code} %{time_total}s\n" \
+  "http://localhost:8081/assets/assets/fonts/unifont-pixel.ttf?platform=android&hash=<md5>"
+```
+
+## 项目结构
+
+```
+src/
+├─ app/                # expo-router 路由：主菜单/音乐/歌曲/歌手/专辑/正在播放/设置/扫描诊断
+├─ components/ipod/    # 外观层：外壳、LCD、菜单列表、点击轮、材质图层、跑马灯
+├─ components/player/  # 播放器 Provider
+├─ store/              # Zustand：播放器状态、设置
+├─ services/           # 扫描（MediaStore + 文件系统）、封面解析、持久化、曲库索引
+├─ hooks/              # useWheelNav / useTheme / usePlaybackToggle / usePersistence …
+├─ theme/              # 双主题调色板、主题化样式、字体常量
+└─ utils/              # 时间格式化、洗牌、音量钳制
+assets/                # 字体、贴图、品牌原图、图标/开屏
+scripts/               # 贴图与图标生成、字体转换、逻辑断言
+plugins/               # 两个 Android config plugin
+docs/screenshots/      # README 截图
+```
+
+纯逻辑模块（时间格式化、洗牌、专辑/歌手归并、音量钳制）用独立 tsconfig 编译到 `.verify/`，再由 Node 跑断言：
+
+```bash
+npm run verify
+```
